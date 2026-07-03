@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KingdomSched</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="fab-actualizar" id="fabActualizar" onclick="aplicarReorder()">
+    &#8593;&#8595; Guardar orden
+  </button>
+
+  <div id="loadingScreen" style="position:fixed;inset:0;background:#1a2744;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s ease;">
+    <img src="/logo.png" style="width:100px;height:100px;margin-bottom:20px;border-radius:16px">
+    <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:2px;margin-bottom:8px">KingdomSched</div>
+    <div style="font-size:13px;color:#94a3b8;margin-bottom:40px;letter-spacing:1px">Programa de Reuniones</div>
+    <div style="width:40px;height:40px;border:3px solid #ffffff20;border-top:3px solid #0099cc;border-radius:50%;animation:spin .8s linear infinite"></div>
+  </div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+  <header class="topbar">
+    <button class="hamburger" id="hamburgerBtn" title="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-brand">
+      <span class="topbar-title">KingdomSched</span>
+    </div>
+    <div id="authBar" style="display:none;align-items:center;gap:10px;margin-left:auto">
+      <img id="userFoto" style="width:30px;height:30px;border-radius:50%;display:none">
+      <span id="userName" style="color:#fff;font-size:13px"></span>
+      <button onclick="logout()" style="background:#991b1b;color:#fff;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px">Salir</button>
+    </div>
+  </header>
+
+  <div class="page-body">
+    <nav class="sidebar" id="sidebar">
+      <div class="nav-item active" data-panel="inicio">Inicio</div>
+      <div class="nav-item has-sub" id="navParticipantes">
+        <span>Participantes</span>
+        <span class="nav-arrow">&#9654;</span>
+        <div class="nav-sub" id="subParticipantes">
+          <div class="nav-sub-item active" data-sub="presidente">Presidente</div>
+          <div class="nav-sub-item" data-sub="orador">Orador</div>
+          <div class="nav-sub-item" data-sub="lector">Lector</div>
+        </div>
+      </div>
+      <div class="nav-item" data-panel="bosquejos">Bosquejos</div>
+      <div class="nav-item" data-panel="grupos">Grupos</div>
+    </nav>
+    <div class="nav-backdrop" id="navBackdrop"></div>
+
+    <main class="content" id="mainContent">
+
+      <!-- INICIO -->
+      <div class="panel active" id="panel-inicio">
+        <div class="card" id="setupCard">
+          <div class="card-title">Configuracion Inicial</div>
+          <div class="form-row">
+            <label>Dia de reunion:</label>
+            <select id="meetingDaySel">
+              <option value="">-- seleccionar --</option>
+              <option value="6">Sabado</option>
+              <option value="0">Domingo</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Primera fecha:</label>
+            <input type="date" id="startDateInp">
+          </div>
+          <button class="btn btn-primary" id="btnComenzar">Comenzar</button>
+          <p class="note">La fecha se ajusta automaticamente al dia elegido. Cada semana siguiente sera +7 dias.</p>
+        </div>
+
+        <div class="top-actions" id="scheduleActions" style="display:none">
+          <button class="btn btn-success" id="btnAdd1">+ 1 Semana</button>
+          <button class="btn btn-success" id="btnAdd4">+ 4 Semanas</button>
+          <button class="btn btn-danger" id="btnClear">Limpiar programa</button>
+        <button class="btn btn-secondary" id="btnNuevoPrograma">Nuevo programa</button>
+        </div>
+
+        <div class="table-wrap" id="scheduleCard" style="display:none">
+          <table id="scheduleTable">
+            <thead>
+              <tr>
+                <th style="width:9%">FECHA</th>
+                <th style="width:10%">PRESI-<br>DENTE</th>
+                <th style="width:10%">ORADOR</th>
+                <th style="width:7%">Bosq.</th>
+                <th style="width:34%">TEMA</th>
+                <th style="width:9%">LECTOR</th>
+                <th style="width:10%">HOSPI-<br>TALIDAD</th>
+                <th style="width:4%"></th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" id="printBtnsCard" style="display:none;margin-top:16px">
+          <div class="card-title">Exportar</div>
+          <div class="form-row">
+            <button class="btn btn-primary" id="btnPdf">Guardar como PDF</button>
+            <button class="btn btn-secondary" id="btnWord">Descargar Word (.doc)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PARTICIPANTES -->
+      <div class="panel" id="panel-participantes">
+        <div class="subtabs">
+          <button class="subtab-btn active" data-sub="presidente">Presidente</button>
+          <button class="subtab-btn" data-sub="orador">Orador</button>
+          <button class="subtab-btn" data-sub="lector">Lector</button>
+        </div>
+        <div class="subpanel active" id="sub-presidente">
+          <div class="card">
+            <div class="card-title">Presidentes — Orden de Rotacion</div>
+            <div class="form-row">
+            </div>
+            <div class="chips" id="chipsPres"></div>
+            <p class="note">El orden de los chips es el orden de rotacion.</p>
+          </div>
+        </div>
+        <div class="subpanel" id="sub-orador">
+          <div class="card">
+            <div class="card-title">Oradores — Orden de Rotacion</div>
+            <div class="form-row">
+            </div>
+            <div class="chips" id="chipsOrad"></div>
+            <p class="note">La etiqueta Zoom se asigna por semana desde la tabla de Inicio.</p>
+          </div>
+        </div>
+        <div class="subpanel" id="sub-lector">
+          <div class="card">
+            <div class="card-title">Lectores</div>
+            <div class="form-row">
+            </div>
+            <div class="chips" id="chipsLect"></div>
+            <p class="note">El lector no coincide con el presidente ni el orador de la misma semana.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOSQUEJOS -->
+      <div class="panel" id="panel-bosquejos">
+        <div class="subtabs">
+          <button class="subtab-btn active" data-bosqtab="oficiales">Bosquejos oficiales</button>
+          <button class="subtab-btn" data-bosqtab="especiales">Discursos especiales</button>
+        </div>
+
+        <div class="subpanel active" id="bosqtab-oficiales">
+          <div class="card">
+            <div class="card-title">Catalogo de Bosquejos <span id="bosqCount" class="card-title-count">(0 registrados)</span></div>
+            <div class="form-row" style="margin-bottom:12px">
+              <input type="text" id="searchBosq" placeholder="Buscar por numero o por palabra del tema..." style="flex:1">
+            </div>
+            <div class="bosq-table-wrap">
+              <table class="bosq-table">
+                <thead><tr>
+                  <th style="width:60px">N</th>
+                  <th>TEMA</th>
+                  <th style="width:44px"></th>
+                </tr></thead>
+                <tbody id="bosqListBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="subpanel" id="bosqtab-especiales">
+          <div class="card">
+            <div class="card-title">Discursos Especiales</div>
+            <p class="note" style="margin-bottom:12px">Estos discursos los gestiona el administrador. Se asignan sin numero de bosquejo.</p>
+            <div class="bosq-table-wrap">
+              <table class="bosq-table">
+                <thead><tr><th>TEMA</th></tr></thead>
+                <tbody id="discursosListBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRUPOS -->
+      <div class="panel" id="panel-grupos">
+        <div class="card">
+          <div class="card-title">Grupos de Hospitalidad</div>
+          <p class="note" style="margin-bottom:16px">Rotan automaticamente. Puede renombrar o eliminar cada grupo.</p>
+          <div id="gruposList"></div>
+          <div class="form-row" style="margin-top:14px">
+            <input type="text" id="inpNuevoGrupo" placeholder="Nombre del nuevo grupo" style="flex:1">
+            <button class="btn btn-primary" id="btnAddGrupo">Agregar grupo</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span id="modalTitle">Seleccionar</span>
+        <button class="modal-close" id="modalCloseBtn">&#x2715;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
