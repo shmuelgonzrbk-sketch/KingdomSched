@@ -1260,13 +1260,16 @@ function recalcularLectores(anclaIdx, nombreAncla) {
   const posAncla = lect.indexOf(nombreAncla);
   if (posAncla === -1) return;
 
+  // contar cuantos lectores validos hay antes de anclaIdx
   let antesCount = 0;
   for (let i = 0; i < anclaIdx; i++) {
     const row = D.schedule[i];
     const isEvt = row.eventType==='asamblea'||row.eventType==='conmemoracion';
-    if (!isEvt && row.lector && row.lector !== '----') antesCount++;
+    const isCir = row.eventType==='circuito';
+    if (!isEvt && !isCir && row.lector && row.lector !== '----') antesCount++;
   }
 
+  // calcular offset para que anclaIdx tenga posAncla
   const offset = ((posAncla - antesCount) % lect.length + lect.length) % lect.length;
 
   let lectIdx = offset;
@@ -1274,8 +1277,15 @@ function recalcularLectores(anclaIdx, nombreAncla) {
     const row = D.schedule[i];
     const isEvt = row.eventType==='asamblea'||row.eventType==='conmemoracion';
     const isCir = row.eventType==='circuito';
-    if (isEvt || isCir) continue;
-    if (i === anclaIdx) { lectIdx++; continue; }
+    if (isEvt || isCir) { row.lector = '----'; continue; }
+
+    if (i === anclaIdx) {
+      // esta fila ya tiene el nombre correcto, solo avanzar contador
+      lectIdx++;
+      continue;
+    }
+
+    // buscar lector que no coincida con presidente ni orador
     let found = '', sl = 1;
     for (let j = 0; j < lect.length; j++) {
       const cand = lect[(lectIdx + j) % lect.length];
