@@ -944,7 +944,9 @@ function autoLector(idx) {
   guardarSchedule(); cerrarModal(); renderTabla();
 }
 function setLector(idx, nombre) {
-  D.schedule[idx].lector=nombre; guardarSchedule(); cerrarModal(); renderTabla();
+  D.schedule[idx].lector = nombre;
+  recalcularLectores(idx, nombre);
+  guardarSchedule(); cerrarModal(); renderTabla();
 }
 
 async function recargarBosquejos() {
@@ -1250,3 +1252,38 @@ setInterval(async () => {
     renderBosquejos();
   } catch(e) {}
 }, 5 * 60 * 1000);
+
+function recalcularLectores(anclaIdx, nombreAncla) {
+  const lect = D.lectores;
+  if (!lect.length) return;
+
+  const posAncla = lect.indexOf(nombreAncla);
+  if (posAncla === -1) return;
+
+  let antesCount = 0;
+  for (let i = 0; i < anclaIdx; i++) {
+    const row = D.schedule[i];
+    const isEvt = row.eventType==='asamblea'||row.eventType==='conmemoracion';
+    if (!isEvt && row.lector && row.lector !== '----') antesCount++;
+  }
+
+  const offset = ((posAncla - antesCount) % lect.length + lect.length) % lect.length;
+
+  let lectIdx = offset;
+  for (let i = 0; i < D.schedule.length; i++) {
+    const row = D.schedule[i];
+    const isEvt = row.eventType==='asamblea'||row.eventType==='conmemoracion';
+    const isCir = row.eventType==='circuito';
+    if (isEvt || isCir) continue;
+    if (i === anclaIdx) { lectIdx++; continue; }
+    let found = '', sl = 1;
+    for (let j = 0; j < lect.length; j++) {
+      const cand = lect[(lectIdx + j) % lect.length];
+      if (cand !== row.presidente && cand !== row.orador) { found = cand; sl = j+1; break; }
+    }
+    if (!found) { found = lect[lectIdx % lect.length]; sl = 1; }
+    row.lector = found;
+    lectIdx += sl;
+  }
+  D.counters.lect = lectIdx;
+}
