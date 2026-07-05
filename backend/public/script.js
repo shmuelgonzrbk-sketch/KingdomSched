@@ -1464,3 +1464,14 @@ document.addEventListener('click', e => {
     }
   });
 });
+
+// cerrar autocomplete al clicar fuera
+document.addEventListener('click', e => {
+  ['miembros','presidentes','oradores','lectores'].forEach(list => {
+    const lista = document.getElementById(`sug-notion-${list}`);
+    const inp   = document.getElementById(`inp-notion-${list}`);
+    if (lista && inp && !inp.contains(e.target) && !lista.contains(e.target)) {
+      lista.style.display = 'none';
+    }
+  });
+});
