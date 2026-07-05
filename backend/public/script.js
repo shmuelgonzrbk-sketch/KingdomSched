@@ -1183,7 +1183,7 @@ function exportarWord() {
    INIT
 ================================================================ */
 function init() {
-  renderChips('presidentes'); renderChips('oradores'); renderChips('lectores');
+  renderChips('miembros'); renderChips('presidentes'); renderChips('oradores'); renderChips('lectores');
   renderBosquejos(); renderGrupos(); mostrarUI();
   if (D.setupDone) renderTabla();
 }
