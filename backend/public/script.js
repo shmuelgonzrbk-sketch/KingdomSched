@@ -683,6 +683,7 @@ async function agregarSemanas(n) {
     next.setDate(next.getDate()+7);
     D.cursorDate = next.toISOString().slice(0,10);
   }
+  asignarLectores();
   await guardarSchedule(); renderTabla();
 }
 
@@ -1296,4 +1297,49 @@ function recalcularLectores(anclaIdx, nombreAncla) {
     lectIdx += sl;
   }
   D.counters.lect = lectIdx;
+}
+
+function asignarLectores() {
+  const lect = D.lectores;
+  if (!lect.length) return;
+
+  // cola circular de lectores disponibles
+  let cola = [...lect]; // copia del orden
+  let offset = D.counters.lect % lect.length;
+  // rotar cola segun offset actual
+  cola = [...cola.slice(offset), ...cola.slice(0, offset)];
+
+  let pendientes = []; // lectores que no pudieron ir en su turno
+
+  for (let i = 0; i < D.schedule.length; i++) {
+    const row = D.schedule[i];
+    const isEvt = row.eventType==='asamblea'||row.eventType==='conmemoracion';
+    const isCir = row.eventType==='circuito';
+    if (isEvt || isCir) { row.lector = '----'; continue; }
+
+    // intentar asignar el primero de la cola
+    let asignado = false;
+    for (let j = 0; j < cola.length; j++) {
+      const cand = cola[j];
+      if (cand !== row.presidente && cand !== row.orador) {
+        row.lector = cand;
+        cola.splice(j, 1); // quitar de cola
+        // si habia pendientes, agregarlos de vuelta al frente
+        if (pendientes.length) {
+          cola = [...pendientes, ...cola];
+          pendientes = [];
+        }
+        cola.push(cand); // al final de la cola circular
+        asignado = true;
+        break;
+      } else {
+        // mover a pendientes
+        pendientes.push(cola.splice(j, 1)[0]);
+        j--;
+      }
+    }
+    if (!asignado) row.lector = '----';
+  }
+
+  D.counters.lect = offset;
 }
