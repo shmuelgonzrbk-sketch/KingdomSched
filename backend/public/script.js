@@ -726,7 +726,8 @@ function construirFila(iso) {
   }
 
   let hospitalidad = '----';
-  if (orador && !D.presidentes.includes(orador)) {
+  const esPresOOrador = D.presidentes.includes(orador) || D.miembros.includes(orador);
+  if (orador && !esPresOOrador) {
     hospitalidad = D.grupos[c.hosp % D.grupos.length] || '----';
     c.hosp++;
   }
@@ -753,7 +754,8 @@ function recalcularHospitalidad() {
     const isEvt = row.eventType==='asamblea' || row.eventType==='conmemoracion';
     const isCir = row.eventType==='circuito';
     if (isEvt||isCir) { row.hospitalidad='----'; return; }
-    if (!row.orador || D.presidentes.includes(row.orador) || row.oradorZoom) {
+    const esMiembroLocal = D.presidentes.includes(row.orador) || D.miembros.includes(row.orador);
+    if (!row.orador || esMiembroLocal || row.oradorZoom) {
       row.hospitalidad='----';
     } else {
       row.hospitalidad = D.grupos[hospIdx % D.grupos.length] || '----';
@@ -1221,7 +1223,8 @@ function setGrupoInicio(idx, grupoIdx) {
     const isEvt = row.eventType==='asamblea'||row.eventType==='conmemoracion';
     const isCir = row.eventType==='circuito';
     if (isEvt||isCir) { row.hospitalidad='----'; continue; }
-    if (!row.orador || D.presidentes.includes(row.orador) || row.oradorZoom) {
+    const esMiembroLocal = D.presidentes.includes(row.orador) || D.miembros.includes(row.orador);
+    if (!row.orador || esMiembroLocal || row.oradorZoom) {
       row.hospitalidad='----';
     } else {
       row.hospitalidad = D.grupos[hospIdx % D.grupos.length];
