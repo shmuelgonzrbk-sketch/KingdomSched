@@ -655,15 +655,34 @@ function construirFila(iso) {
     presidente=found; c.pres+=sl;
   }
 
+  // LECTOR con cola de swap
   let lector = '----';
   if (lect.length) {
-    let found='', sl=1;
-    for (let i=0; i<lect.length; i++) {
-      const cand = lect[(c.lect+i) % lect.length];
-      if (cand!==orador && cand!==presidente) { found=cand; sl=i+1; break; }
+    if (!D.lectCola || D.lectCola.length === 0) {
+      D.lectCola = [...lect];
     }
-    if (!found) { found=lect[c.lect % lect.length]; sl=1; }
-    lector=found; c.lect+=sl;
+    const cola = D.lectCola;
+    // buscar el primero de la cola que no tenga conflicto
+    let encontrado = false;
+    for (let i = 0; i < cola.length; i++) {
+      if (cola[i] !== orador && cola[i] !== presidente) {
+        lector = cola[i];
+        if (i > 0) {
+          // swap: sacar el conflictivo(s) del frente e insertar despues del elegido
+          const conflictivos = cola.splice(0, i);
+          cola.splice(1, 0, ...conflictivos);
+        }
+        // rotar: el asignado va al final
+        cola.shift();
+        cola.push(lector);
+        encontrado = true;
+        break;
+      }
+    }
+    if (!encontrado) {
+      lector = cola[0];
+      cola.push(cola.shift());
+    }
   }
 
   let hospitalidad = '----';
