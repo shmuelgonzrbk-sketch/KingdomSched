@@ -9,6 +9,7 @@ let D = {
   discursos: [],  // discursos especiales sin numero
   _presIds: [], _oradIds: [], _lectIds: [], _grupIds: [],
   schedule: [], setupDone: false, cursorDate: null,
+  lectCola: [],  // cola de lectores con swap
   counters: { pres:0, orad:0, lect:0, hosp:0 }
 };
 
@@ -562,7 +563,7 @@ document.getElementById('btnComenzar').addEventListener('click', () => {
   let d = new Date(dt+'T00:00:00');
   const tgt = Number(day);
   while (d.getDay() !== tgt) d.setDate(d.getDate()+1);
-  D.setupDone=true; D.schedule=[]; D.counters={pres:0,orad:0,lect:0,hosp:0};
+  D.setupDone=true; D.schedule=[]; D.counters={pres:0,orad:0,lect:0,hosp:0}; D.lectCola=[];
   D.cursorDate = d.toISOString().slice(0,10);
   // guardar config en BD
   apiFetch('/api/config', { method:'POST', body: JSON.stringify({ meetingDay: Number(day) }) }).catch(e => console.error(e));
@@ -619,7 +620,7 @@ document.getElementById('btnClear').addEventListener('click', () => {
   document.getElementById('clearCancelBtn').addEventListener('click', () => document.body.removeChild(div));
   document.getElementById('clearConfirmBtn').addEventListener('click', async () => {
     document.body.removeChild(div);
-    D.schedule=[]; D.setupDone=false; D.cursorDate=null; D.counters={pres:0,orad:0,lect:0,hosp:0};
+    D.schedule=[]; D.setupDone=false; D.cursorDate=null; D.counters={pres:0,orad:0,lect:0,hosp:0}; D.lectCola=[];
     await guardarSchedule(); mostrarUI(); renderTabla();
     mostrarNotif('programa eliminada', 'ok');
   });
