@@ -83,6 +83,7 @@ function mostrarUsuario(user) {
   document.getElementById('authBar').style.display     = 'flex';
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('userName').textContent      = user.nombre;
+  document.getElementById('userEmail').textContent     = user.email || '';
   const foto = document.getElementById('userFoto');
   if (user.foto) { foto.src = user.foto; foto.style.display = 'block'; }
 }
@@ -111,13 +112,15 @@ function mostrarNotif(msg, tipo = 'info') {
 ================================================================ */
 async function cargar() {
   try {
-    const [participantes, grupos, schedule, bosquejos, discursosData] = await Promise.all([
+    const [participantes, grupos, schedule, bosquejos, discursosData, config] = await Promise.all([
       apiFetch('/api/participantes'),
       apiFetch('/api/grupos'),
       apiFetch('/api/schedule'),
       apiFetch('/api/bosquejos'),
-      apiFetch('/api/discursos').catch(()=>[])
+      apiFetch('/api/discursos').catch(()=>[]),
+      apiFetch('/api/config').catch(()=>null)
     ]);
+    D.meetingDay = (config && config.meetingDay !== null && config.meetingDay !== undefined) ? config.meetingDay : null;
     D._presIds    = participantes.filter(p => p.tipo === 'presidente');
     D._oradIds    = participantes.filter(p => p.tipo === 'orador');
     D._lectIds    = participantes.filter(p => p.tipo === 'lector');
@@ -129,7 +132,18 @@ async function cargar() {
     D.miembros    = D._miembroIds.map(p => p.nombre);
     D.grupos      = D._grupIds.map(g => g.nombre);
     D.bosquejos   = Object.fromEntries(bosquejos.map(b => [String(b.id), b.tema]));
+    // si no cargaron bosquejos, reintentar en 2 segundos
+    if (Object.keys(D.bosquejos).length === 0) {
+      setTimeout(async () => {
+        try {
+          const b2 = await apiFetch('/api/bosquejos');
+          D.bosquejos = Object.fromEntries(b2.map(b => [String(b.id), b.tema]));
+          renderBosquejos();
+        } catch(e) {}
+      }, 2000);
+    }
     D.discursos   = discursosData || [];
+    cargarBosqPersonales();
     D.schedule    = schedule.map(r => ({ ...r, bosquejo: r.bosquejoId ? String(r.bosquejoId) : '', tema: r.tema || '' }));
     D.setupDone   = D.schedule.length > 0;
     if (D.schedule.length > 0) {
@@ -225,29 +239,47 @@ document.querySelectorAll('.nav-item:not(.has-sub)').forEach(item => {
   item.addEventListener('click', () => { cerrarTodosSubmenus(); activarPanel(item.dataset.panel); });
 });
 async function activarPanel(panelId) {
+  // si hay reorden pendiente y quiere ir a inicio, advertir
+  if (panelId === 'inicio' && Object.keys(pendingReorder).length > 0) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+    div.innerHTML = `
+      <div style="background:#fff;border-radius:10px;padding:28px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center">
+        <div style="font-size:26px;margin-bottom:10px">&#9888;</div>
+        <div style="font-size:15px;font-weight:800;color:#1a2744;margin-bottom:8px">Cambios sin guardar</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:20px">
+          Tienes cambios de orden pendientes en Participantes.<br>
+          <b>¿Deseas guardar antes de continuar?</b>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button id="navContinuar" class="btn btn-secondary">Continuar sin guardar</button>
+          <button id="navGuardar" class="btn btn-primary">Guardar y continuar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    div.querySelector('#navContinuar').addEventListener('click', () => {
+      pendingReorder = {};
+      const fab = document.getElementById('fabActualizar');
+      if (fab) fab.classList.remove('visible');
+      document.body.removeChild(div);
+      _irAPanel(panelId);
+    });
+    div.querySelector('#navGuardar').addEventListener('click', async () => {
+      document.body.removeChild(div);
+      await aplicarReorder();
+      _irAPanel(panelId);
+    });
+    return;
+  }
+  _irAPanel(panelId);
+}
+
+async function _irAPanel(panelId) {
   document.querySelectorAll('.nav-item:not(.has-sub)').forEach(n => n.classList.toggle('active', n.dataset.panel === panelId));
   document.querySelectorAll('.nav-item.has-sub').forEach(n => n.classList.toggle('active', panelId === 'participantes'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-'+panelId).classList.add('active');
   if (window.innerWidth < 768) cerrarSidebar();
-
-  // al volver a inicio recargar participantes y grupos por si hubo cambios
-  if (panelId === 'inicio' && D.setupDone) {
-    try {
-      const [participantes, grupos] = await Promise.all([
-        apiFetch('/api/participantes'),
-        apiFetch('/api/grupos')
-      ]);
-      D._presIds = participantes.filter(p => p.tipo === 'presidente');
-      D._oradIds = participantes.filter(p => p.tipo === 'orador');
-      D._lectIds = participantes.filter(p => p.tipo === 'lector');
-      D._grupIds = grupos;
-      D.presidentes = D._presIds.map(p => p.nombre);
-      D.oradores    = D._oradIds.map(p => p.nombre);
-      D.lectores    = D._lectIds.map(p => p.nombre);
-      D.grupos      = D._grupIds.map(g => g.nombre);
-    } catch(e) { console.error(e); }
-  }
 }
 
 /* SUBTABS */
@@ -439,7 +471,7 @@ async function agregarItem(listName, inputId, valorDirecto = null) {
     D[listName].push(p.nombre);
     D[IDS_MAP[listName]].push(p);
     renderChips(listName);
-    mostrarNotif(p.nombre + ' agregado', 'ok');
+    
   } catch(e) { mostrarNotif(e.error || 'Error al agregar', 'error'); }
 }
 
@@ -603,6 +635,7 @@ document.getElementById('btnComenzar').addEventListener('click', () => {
   let d = new Date(dt+'T00:00:00');
   const tgt = Number(day);
   while (d.getDay() !== tgt) d.setDate(d.getDate()+1);
+  D.meetingDay = tgt;
   D.setupDone=true; D.schedule=[]; D.counters={pres:0,orad:0,lect:0,hosp:0}; D.lectCola=[];
   D.cursorDate = d.toISOString().slice(0,10);
   // guardar config en BD
@@ -630,15 +663,18 @@ document.getElementById('btnNuevoPrograma')?.addEventListener('click', () => {
   document.body.appendChild(div);
 });
 
-function iniciarNuevoPrograma(fecha, div) {
+async function iniciarNuevoPrograma(fecha, div) {
   if (!fecha) { mostrarNotif('Selecciona una fecha', 'error'); return; }
   if (!D.meetingDay && D.meetingDay !== 0) { mostrarNotif('No hay dia de reunion configurado', 'error'); return; }
   let d = new Date(fecha + 'T00:00:00');
   while (d.getDay() !== D.meetingDay) d.setDate(d.getDate() + 1);
+  D.schedule = [];
+  D.counters = { pres:0, orad:0, lect:0, hosp:0 };
+  D.lectCola = [];
   D.cursorDate = d.toISOString().slice(0, 10);
   D.setupDone  = true;
   document.body.removeChild(div);
-  agregarSemanas(1);
+  await agregarSemanas(1);
   mostrarUI();
   mostrarNotif('Nuevo programa iniciado', 'ok');
 }
@@ -1070,11 +1106,13 @@ function renderEspModal(idx) {
   const q   = (document.getElementById('espSearchMdl')?.value||'').trim().toLowerCase();
   const el  = document.getElementById('espMdlList');
   if (!el) return;
-  const fil = D.discursos.filter(d => !q || d.tema.toLowerCase().includes(q));
+  const todos = [...D.discursos, ...D.bosquejosPersonales];
+  const fil = todos.filter(d => !q || d.tema.toLowerCase().includes(q));
   el.innerHTML = fil.length === 0
-    ? `<p style="padding:12px;color:var(--muted);font-size:13px">${D.discursos.length===0?'Sin discursos especiales. El admin puede agregarlos desde el panel.':'Sin resultados.'}</p>`
+    ? `<p style="padding:12px;color:var(--muted);font-size:13px">Sin discursos. Agrega desde la seccion Bosquejos.</p>`
     : fil.map(d => `
         <div class="modal-opt" onclick="setDiscursoEspecial(${idx},'${d.id}','${d.tema.replace(/'/g,"\'")}')">
+          ${D.bosquejosPersonales.includes(d)?'<span style="font-size:10px;color:#0099cc;margin-right:4px">PERSONAL</span>':''}
           ${esc(d.tema)}
         </div>`).join('');
 }
@@ -1478,3 +1516,51 @@ document.addEventListener('click', e => {
     }
   });
 });
+
+/* ── BOSQUEJOS PERSONALES ────────────────────────── */
+D.bosquejosPersonales = [];
+
+async function cargarBosqPersonales() {
+  try {
+    const data = await apiFetch('/api/bosquejos-personales');
+    D.bosquejosPersonales = data || [];
+    renderBosqPersonales();
+  } catch(e) {}
+}
+
+function renderBosqPersonales() {
+  const tbody = document.getElementById('bosqPersonalBody');
+  if (!tbody) return;
+  tbody.innerHTML = D.bosquejosPersonales.length === 0
+    ? '<tr><td colspan="2" style="padding:12px;text-align:center;color:var(--muted)">Sin bosquejos personales.</td></tr>'
+    : D.bosquejosPersonales.map(b => `
+        <tr>
+          <td style="padding:8px 10px">${esc(b.tema)}</td>
+          <td style="text-align:center">
+            <button class="del-btn" onclick="eliminarBosqPersonal('${b.id}')">x</button>
+          </td>
+        </tr>`).join('');
+}
+
+async function agregarBosqPersonal() {
+  const inp  = document.getElementById('inpBosqPersonal');
+  const tema = inp?.value.trim();
+  if (!tema) return;
+  try {
+    const b = await apiFetch('/api/bosquejos-personales', {
+      method: 'POST', body: JSON.stringify({ tema })
+    });
+    D.bosquejosPersonales.push(b);
+    inp.value = '';
+    renderBosqPersonales();
+    mostrarNotif('Bosquejo agregado', 'ok');
+  } catch(e) { mostrarNotif('Error al agregar', 'error'); }
+}
+
+async function eliminarBosqPersonal(id) {
+  try {
+    await apiFetch(`/api/bosquejos-personales/${id}`, { method: 'DELETE' });
+    D.bosquejosPersonales = D.bosquejosPersonales.filter(b => b.id !== id);
+    renderBosqPersonales();
+  } catch(e) { mostrarNotif('Error al eliminar', 'error'); }
+}

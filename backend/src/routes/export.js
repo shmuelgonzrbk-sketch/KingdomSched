@@ -5,15 +5,15 @@ const prisma           = new PrismaClient();
 const {
   Document, Packer, Table, TableRow, TableCell, Paragraph,
   TextRun, WidthType, AlignmentType, ShadingType, HeightRule,
-  VerticalAlign, PageOrientation, TableAnchorType
+  VerticalAlign, PageOrientation, TableAnchorType, BorderStyle,
+  TableLayoutType
 } = require('docx');
 
-const NAVY  = '1A2744';
-const BLUE  = 'AED2F2';
-const PINK  = 'F8D8E6';
-const TEAL  = '0099CC';
-const WHITE = 'FFFFFF';
-const BLACK = '000000';
+const BLUE_ROW = 'AED2F2';
+const PINK_ROW = 'F8D8E6';
+const HEADER_BG = 'FFFFFF';
+const AZUL   = '4C94D8'; // color de orador (encabezado y datos)
+const BLACK  = '000000';
 const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
                'JULIO','AGOSTO','SEPTIEMB','OCTUBRE','NOVIEMBRE','DICIEMB'];
 
@@ -23,13 +23,14 @@ function fmtFecha(iso) {
 }
 
 // anchos exactos del Word original en DXA
-const COLS = [1317, 1117, 1347, 993, 4347, 1085, 1185];
-const TABLE_W = 11391;
+const COLS = [1271, 1134, 1276, 850, 4122, 992, 1214];
+const TABLE_W = 10859;
+
+const BORDER = { style: BorderStyle.SINGLE, size: 4, color: BLACK };
 
 function makeCell(content, bg, opts = {}) {
-  const isHeader = bg === NAVY;
-  const color    = opts.color || (isHeader ? WHITE : BLACK);
-  const size     = 22; // 11pt igual que el original
+  const color = opts.color || BLACK;
+  const size  = 22; // 11pt igual que el original
 
   let runs = [];
   if (Array.isArray(content)) {
@@ -63,7 +64,7 @@ function makeCell(content, bg, opts = {}) {
     width: { size: opts.w, type: WidthType.DXA },
     margins: { top: 60, bottom: 60, left: 108, right: 108 },
     children: [new Paragraph({
-      alignment: opts.left ? AlignmentType.LEFT : AlignmentType.CENTER,
+      alignment: AlignmentType.CENTER,
       children:  runs
     })]
   });
@@ -78,20 +79,20 @@ router.get('/word', requireAuth, async (req, res) => {
 
   const headerRow = new TableRow({
     tableHeader: true,
-    height: { value: 800, rule: HeightRule.AT_LEAST },
+    height: { value: 590, rule: HeightRule.AT_LEAST },
     children: [
-      makeCell([{text:'FECHA',    bold:true}], NAVY, { w:COLS[0] }),
-      makeCell([{text:'PRESI-',   bold:true},{text:'DENTE', bold:true, break:1}], NAVY, { w:COLS[1] }),
-      makeCell([{text:'ORADOR',   bold:true, color:TEAL}], NAVY, { w:COLS[2] }),
-      makeCell([{text:'Bosq.',    bold:true}], NAVY, { w:COLS[3] }),
-      makeCell([{text:'TEMA',     bold:true}], NAVY, { w:COLS[4] }),
-      makeCell([{text:'LECTOR',   bold:true}], NAVY, { w:COLS[5] }),
-      makeCell([{text:'HOSPI-',   bold:true},{text:'TALIDAD', bold:true, break:1}], NAVY, { w:COLS[6] }),
+      makeCell([{text:'FECHA',    bold:true}], HEADER_BG, { w:COLS[0] }),
+      makeCell([{text:'PRESI-',   bold:true},{text:'DENTE', bold:true, break:1}], HEADER_BG, { w:COLS[1] }),
+      makeCell([{text:'ORADOR',   bold:true, color:AZUL}], HEADER_BG, { w:COLS[2] }),
+      makeCell([{text:'Bosq.',    bold:true}], HEADER_BG, { w:COLS[3] }),
+      makeCell([{text:'TEMA',     bold:true}], HEADER_BG, { w:COLS[4] }),
+      makeCell([{text:'LECTOR',   bold:true}], HEADER_BG, { w:COLS[5] }),
+      makeCell([{text:'HOSPI-',   bold:true},{text:'TALIDAD', bold:true, break:1}], HEADER_BG, { w:COLS[6] }),
     ]
   });
 
   const dataRows = schedule.map((row, idx) => {
-    const bg    = idx % 2 === 0 ? BLUE : PINK;
+    const bg    = idx % 2 === 0 ? BLUE_ROW : PINK_ROW;
     const isEvt = row.eventType === 'asamblea' || row.eventType === 'conmemoracion';
     const isCir = row.eventType === 'circuito';
     const g     = '----';
@@ -104,11 +105,11 @@ router.get('/word', requireAuth, async (req, res) => {
       oraContent = g;
     } else if (row.oradorZoom && row.orador) {
       oraContent = [
-        { text: row.orador, bold:true, color:TEAL },
-        { text: '(Zoom)',   bold:false, color:TEAL, break:1 }
+        { text: row.orador, bold:true, color:AZUL },
+        { text: '(Zoom)',   bold:false, color:AZUL, break:1 }
       ];
     } else {
-      oraContent = [{ text: row.orador||g, bold:true, color:TEAL }];
+      oraContent = [{ text: row.orador||g, bold:true, color:AZUL }];
     }
 
     const bosq = (isEvt||isCir) ? g : (row.bosquejoId ? `N°${row.bosquejoId}` : g);
@@ -119,13 +120,13 @@ router.get('/word', requireAuth, async (req, res) => {
     const hosp = (isEvt||isCir) ? g : (row.hospitalidad||g);
 
     return new TableRow({
-      height: { value: 1000, rule: HeightRule.AT_LEAST },
+      height: { value: 739, rule: HeightRule.AT_LEAST },
       children: [
         makeCell([{text:fecha, bold:true}], bg, { w:COLS[0] }),
         makeCell(pres,                     bg, { w:COLS[1] }),
         makeCell(oraContent,               bg, { w:COLS[2] }),
         makeCell(bosq,                     bg, { w:COLS[3] }),
-        makeCell(tema,                     bg, { w:COLS[4], left:true }),
+        makeCell(tema,                     bg, { w:COLS[4] }),
         makeCell(lect,                     bg, { w:COLS[5] }),
         makeCell(hosp,                     bg, { w:COLS[6] }),
       ]
@@ -135,11 +136,15 @@ router.get('/word', requireAuth, async (req, res) => {
   const tabla = new Table({
     width: { size: TABLE_W, type: WidthType.DXA },
     columnWidths: COLS,
+    layout: TableLayoutType.FIXED,
+    margins: { left: 10, right: 10 },
+    borders: {
+      top: BORDER, bottom: BORDER, left: BORDER, right: BORDER,
+      insideHorizontal: BORDER, insideVertical: BORDER,
+    },
     float: {
       horizontalAnchor: TableAnchorType.MARGIN,
-      verticalAnchor:   TableAnchorType.MARGIN,
-      absoluteHorizontalPosition: 0,
-      absoluteVerticalPosition:   0,
+      absoluteHorizontalPosition: -436,
     },
     rows: [headerRow, ...dataRows]
   });
@@ -149,9 +154,8 @@ router.get('/word', requireAuth, async (req, res) => {
       properties: {
         page: {
           size: {
-            width:       15840,
-            height:      12240,
-            orientation: PageOrientation.LANDSCAPE
+            width:  12240,
+            height: 15840
           },
           margin: { top: 720, bottom: 720, left: 1080, right: 1080 }
         }

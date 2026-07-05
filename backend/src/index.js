@@ -24,6 +24,7 @@ app.use('/api/bosquejos',     require('./routes/bosquejos'));
 app.use('/api/participantes', require('./routes/participantes'));
 app.use('/api/grupos',        require('./routes/grupos'));
 app.use('/api/config', require('./routes/config'));
+app.use('/api/bosquejos-personales', require('./routes/bosquejosPersonales'));
 app.use('/api/discursos', require('./routes/discursos'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/admin', require('./routes/admin'));

@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KingdomSched</title>
   <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <button class="fab-actualizar" id="fabActualizar" onclick="aplicarReorder()">
-    &#8593;&#8595; Guardar orden
-  </button>
 
-  <div id="loadingScreen" style="position:fixed;inset:0;background:#1a2744;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s ease;">
+  <div id="loadingScreen" style="position:fixed;inset:0;background:#16233f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s ease;">
     <img src="/logo.png" style="width:100px;height:100px;margin-bottom:20px;border-radius:16px">
-    <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:2px;margin-bottom:8px">KingdomSched</div>
-    <div style="font-size:13px;color:#94a3b8;margin-bottom:40px;letter-spacing:1px">Programa de Reuniones</div>
-    <div style="width:40px;height:40px;border:3px solid #ffffff20;border-top:3px solid #0099cc;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:600;color:#fff;letter-spacing:1.5px;margin-bottom:8px">KingdomSched</div>
+    <div style="font-size:13px;color:#94a3b8;margin-bottom:40px;letter-spacing:.5px">Programa de Reuniones</div>
+    <div style="width:36px;height:36px;border:3px solid #ffffff20;border-top:3px solid #3b6ea8;border-radius:50%;animation:spin .8s linear infinite"></div>
   </div>
   <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
@@ -27,27 +27,26 @@
     <div class="topbar-brand">
       <span class="topbar-title">KingdomSched</span>
     </div>
-    <div id="authBar" style="display:none;align-items:center;gap:10px;margin-left:auto">
-      <img id="userFoto" style="width:30px;height:30px;border-radius:50%;display:none">
-      <span id="userName" style="color:#fff;font-size:13px"></span>
-      <button onclick="logout()" style="background:#991b1b;color:#fff;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px">Salir</button>
-    </div>
   </header>
 
   <div class="page-body">
     <nav class="sidebar" id="sidebar">
-      <div class="nav-item active" data-panel="inicio">Inicio</div>
-      <div class="nav-item has-sub" id="navParticipantes">
-        <span>Participantes</span>
-        <span class="nav-arrow">&#9654;</span>
-        <div class="nav-sub" id="subParticipantes">
-          <div class="nav-sub-item active" data-sub="presidente">Presidente</div>
-          <div class="nav-sub-item" data-sub="orador">Orador</div>
-          <div class="nav-sub-item" data-sub="lector">Lector</div>
+      <div class="nav-items">
+        <div class="nav-item active" data-panel="inicio">Inicio</div>
+        <div class="nav-item has-sub" id="navParticipantes">
+          <span>Participantes</span>
+          <span class="nav-arrow">&#9654;</span>
+          <div class="nav-sub" id="subParticipantes">
+            <div class="nav-sub-item active" data-sub="presidente">Presidente</div>
+            <div class="nav-sub-item" data-sub="orador">Orador</div>
+            <div class="nav-sub-item" data-sub="lector">Lector</div>
+          </div>
         </div>
+        <div class="nav-item" data-panel="bosquejos">Bosquejos</div>
+        <div class="nav-item" data-panel="grupos">Grupos</div>
+        <div class="nav-item" data-panel="cuenta">Cuenta</div>
       </div>
-      <div class="nav-item" data-panel="bosquejos">Bosquejos</div>
-      <div class="nav-item" data-panel="grupos">Grupos</div>
+
     </nav>
     <div class="nav-backdrop" id="navBackdrop"></div>
 
@@ -77,7 +76,7 @@
           <button class="btn btn-success" id="btnAdd1">+ 1 Semana</button>
           <button class="btn btn-success" id="btnAdd4">+ 4 Semanas</button>
           <button class="btn btn-danger" id="btnClear">Limpiar programa</button>
-        <button class="btn btn-secondary" id="btnNuevoPrograma">Nuevo programa</button>
+          <button class="btn btn-secondary" id="btnNuevoPrograma">Nuevo programa</button>
         </div>
 
         <div class="table-wrap" id="scheduleCard" style="display:none">
@@ -170,7 +169,10 @@
 
         <div class="subpanel active" id="bosqtab-oficiales">
           <div class="card">
-            <div class="card-title">Catalogo de Bosquejos <span id="bosqCount" class="card-title-count">(0 registrados)</span></div>
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+              <span>Catalogo de Bosquejos <span id="bosqCount" class="card-title-count">(0 registrados)</span></span>
+              <button class="btn btn-secondary btn-sm" onclick="recargarBosquejos()">Recargar</button>
+            </div>
             <div class="form-row" style="margin-bottom:12px">
               <input type="text" id="searchBosq" placeholder="Buscar por numero o por palabra del tema..." style="flex:1">
             </div>
@@ -190,13 +192,35 @@
         <div class="subpanel" id="bosqtab-especiales">
           <div class="card">
             <div class="card-title">Discursos Especiales</div>
-            <p class="note" style="margin-bottom:12px">Estos discursos los gestiona el administrador. Se asignan sin numero de bosquejo.</p>
+            <p class="note" style="margin-bottom:10px">Agrega tus propios temas. Cada usuario tiene su propia lista.</p>
+            <div class="form-row" style="margin-bottom:12px">
+              <input type="text" id="inpBosqPersonal" placeholder="Tema del discurso..." style="flex:1"
+                onkeydown="if(event.key==='Enter')agregarBosqPersonal()">
+              <button class="btn btn-primary" onclick="agregarBosqPersonal()">Agregar</button>
+            </div>
             <div class="bosq-table-wrap">
               <table class="bosq-table">
-                <thead><tr><th>TEMA</th></tr></thead>
-                <tbody id="discursosListBody"></tbody>
+                <thead><tr><th>TEMA</th><th style="width:44px"></th></tr></thead>
+                <tbody id="bosqPersonalBody"></tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUENTA -->
+      <div class="panel" id="panel-cuenta">
+        <div class="card">
+          <div class="card-title">Cuenta</div>
+          <div id="authBar" class="account-row" style="display:none">
+            <div class="account-header">
+              <img id="userFoto" class="account-avatar" style="display:none">
+              <div class="account-info">
+                <span id="userName" class="account-name"></span>
+                <span id="userEmail" class="account-email"></span>
+              </div>
+            </div>
+            <button onclick="logout()" class="btn btn-danger">Cerrar sesion</button>
           </div>
         </div>
       </div>

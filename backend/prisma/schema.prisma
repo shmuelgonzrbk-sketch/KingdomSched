@@ -19,6 +19,7 @@ model User {
   participantes Participante[]
   grupos        Grupo[]
   config        Config?
+  bosquejosPersonales BosquejoPersonal[]
 }
 
 model Bosquejo {
@@ -75,6 +76,15 @@ model Config {
 
 model DiscursoEspecial {
   id        String   @id @default(cuid())
+  tema      String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model BosquejoPersonal {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   tema      String
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())

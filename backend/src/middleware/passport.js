@@ -9,6 +9,7 @@ passport.use(new GoogleStrategy({
   callbackURL:  process.env.FRONTEND_URL + '/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
+    const foto = profile.photos[0]?.value || null;
     let user = await prisma.user.findUnique({ where: { googleId: profile.id } });
     if (!user) {
       user = await prisma.user.create({
@@ -16,8 +17,13 @@ passport.use(new GoogleStrategy({
           googleId: profile.id,
           email:    profile.emails[0].value,
           nombre:   profile.displayName,
-          foto:     profile.photos[0]?.value || null,
+          foto,
         }
+      });
+    } else if (foto && (user.foto !== foto || user.nombre !== profile.displayName)) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data:  { foto, nombre: profile.displayName }
       });
     }
     return done(null, user);
