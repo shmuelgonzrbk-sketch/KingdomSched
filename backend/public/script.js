@@ -268,13 +268,27 @@ const IDS_MAP  = { presidentes:'_presIds',  oradores:'_oradIds', lectores:'_lect
 
 function renderChips(listName) {
   const el = document.getElementById(CHIP_EL[listName]);
+  if (!el) return;
+
+  // todos los nombres conocidos para autocomplete
+  const todosLosNombres = [...new Set([
+    ...D.miembros, ...D.presidentes, ...D.oradores, ...D.lectores
+  ])].filter(n => !D[listName].includes(n));
+
   el.innerHTML = `
-    <div class="notion-add-row" style="margin-bottom:10px" onclick="document.getElementById('inp-notion-${listName}').focus()">
-      <span style="font-size:16px;color:var(--navy);font-weight:700">+</span>
-      <input class="notion-add-input" id="inp-notion-${listName}"
-        placeholder="Escribir nombre y presionar Enter..."
-        onkeydown="if(event.key==='Enter')agregarItemNotion('${listName}',this)">
-      <button class="btn btn-primary btn-sm" onclick="agregarItemNotion('${listName}',document.getElementById('inp-notion-${listName}'))">Agregar</button>
+    <div style="position:relative;margin-bottom:12px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="position:relative;flex:1">
+          <input type="text" id="inp-notion-${listName}"
+            placeholder="Buscar o escribir nombre..."
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit"
+            oninput="renderSugNotion('${listName}')"
+            onkeydown="if(event.key==='Enter'){agregarItemNotion('${listName}',this);}"
+            onfocus="renderSugNotion('${listName}')">
+          <div id="sug-notion-${listName}" class="autocomplete-list"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="agregarItemNotion('${listName}',document.getElementById('inp-notion-${listName}'))">Agregar</button>
+      </div>
     </div>
     <div class="notion-list" id="notion-list-${listName}">
     ${D[listName].map((nombre, i) => `
@@ -295,6 +309,30 @@ function renderChips(listName) {
         </div>
       </div>`).join('')}
     </div>`;
+}
+
+function renderSugNotion(listName) {
+  const inp  = document.getElementById(`inp-notion-${listName}`);
+  const lista = document.getElementById(`sug-notion-${listName}`);
+  if (!inp || !lista) return;
+  const q = inp.value.trim().toLowerCase();
+  const todos = [...new Set([...D.miembros,...D.presidentes,...D.oradores,...D.lectores])];
+  const yaEstan = D[listName];
+  const sugs = todos.filter(n => !yaEstan.includes(n) && (q==='' || n.toLowerCase().includes(q)));
+  if (sugs.length === 0) { lista.style.display='none'; return; }
+  lista.innerHTML = sugs.map(n =>
+    `<div class="autocomplete-item" onmousedown="selNotion('${listName}','${n.replace(/'/g,"\'")}')">
+      ${esc(n)}
+    </div>`).join('');
+  lista.style.display = 'block';
+}
+
+function selNotion(listName, nombre) {
+  const inp = document.getElementById(`inp-notion-${listName}`);
+  if (inp) { inp.value = nombre; }
+  const lista = document.getElementById(`sug-notion-${listName}`);
+  if (lista) lista.style.display = 'none';
+  agregarItemNotion(listName, inp);
 }
 
 let dragSrcIdx = null;
