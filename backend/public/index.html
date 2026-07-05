@@ -110,11 +110,29 @@
       <!-- PARTICIPANTES -->
       <div class="panel" id="panel-participantes">
         <div class="subtabs">
-          <button class="subtab-btn active" data-sub="presidente">Presidente</button>
+          <button class="subtab-btn active" data-sub="miembros">Miembros</button>
+          <button class="subtab-btn" data-sub="presidente">Presidente</button>
           <button class="subtab-btn" data-sub="orador">Orador</button>
           <button class="subtab-btn" data-sub="lector">Lector</button>
         </div>
-        <div class="subpanel active" id="sub-presidente">
+        <div class="subpanel active" id="sub-miembros">
+          <div class="card">
+            <div class="card-title">Miembros de la Congregacion</div>
+            <p class="note" style="margin-bottom:10px">Lista base de todos los hermanos. Se usara como sugerencia al agregar en las demas listas.</p>
+            <div class="form-row">
+              <div style="position:relative;flex:1">
+                <input type="text" id="inpMiembro" placeholder="Nombre del hermano" style="width:100%"
+                  oninput="mostrarSugerencias('inpMiembro','miembros',null)"
+                  onkeydown="if(event.key==='Enter')agregarMiembro()">
+                <div id="sug-inpMiembro" class="autocomplete-list"></div>
+              </div>
+              <button class="btn btn-primary" onclick="agregarMiembro()">Agregar</button>
+            </div>
+            <div class="chips" id="chipsMiembros"></div>
+          </div>
+        </div>
+
+      <div class="subpanel" id="sub-presidente">
           <div class="card">
             <div class="card-title">Presidentes — Orden de Rotacion</div>
             <div class="form-row">

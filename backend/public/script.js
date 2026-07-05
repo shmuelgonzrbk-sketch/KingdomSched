@@ -118,13 +118,15 @@ async function cargar() {
       apiFetch('/api/bosquejos'),
       apiFetch('/api/discursos').catch(()=>[])
     ]);
-    D._presIds = participantes.filter(p => p.tipo === 'presidente');
-    D._oradIds = participantes.filter(p => p.tipo === 'orador');
-    D._lectIds = participantes.filter(p => p.tipo === 'lector');
+    D._presIds    = participantes.filter(p => p.tipo === 'presidente');
+    D._oradIds    = participantes.filter(p => p.tipo === 'orador');
+    D._lectIds    = participantes.filter(p => p.tipo === 'lector');
+    D._miembroIds = participantes.filter(p => p.tipo === 'miembro');
     D._grupIds = grupos;
     D.presidentes = D._presIds.map(p => p.nombre);
     D.oradores    = D._oradIds.map(p => p.nombre);
     D.lectores    = D._lectIds.map(p => p.nombre);
+    D.miembros    = D._miembroIds.map(p => p.nombre);
     D.grupos      = D._grupIds.map(g => g.nombre);
     D.bosquejos   = Object.fromEntries(bosquejos.map(b => [String(b.id), b.tema]));
     D.discursos   = discursosData || [];
@@ -1363,3 +1365,64 @@ function asignarLectores() {
 
   D.counters.lect = offset;
 }
+
+/* ── MIEMBROS ────────────────────────────────────── */
+// agregar miembros al estado
+if (!D.miembros) D.miembros   = [];
+if (!D._miembroIds) D._miembroIds = [];
+
+CHIP_EL.miembros  = 'chipsMiembros';
+TIPO_MAP.miembros = 'miembro';
+IDS_MAP.miembros  = '_miembroIds';
+
+async function agregarMiembro() {
+  await agregarItem('miembros', 'inpMiembro');
+}
+
+/* ── AUTOCOMPLETE ────────────────────────────────── */
+function mostrarSugerencias(inputId, listName, sourceList) {
+  const inp   = document.getElementById(inputId);
+  const lista = document.getElementById('sug-' + inputId);
+  if (!inp || !lista) return;
+  const q = inp.value.trim().toLowerCase();
+
+  // fuente: lista de miembros si sourceList es 'miembros', sino la propia lista
+  const fuente = sourceList === 'miembros' ? D.miembros : D[listName];
+  const yaEstan = D[listName] || [];
+
+  const sugs = fuente.filter(n =>
+    n.toLowerCase().includes(q) &&
+    !yaEstan.includes(n) &&
+    q.length > 0
+  );
+
+  if (sugs.length === 0) { lista.style.display = 'none'; return; }
+
+  lista.innerHTML = sugs.map(n =>
+    `<div class="autocomplete-item" onclick="seleccionarSugerencia('${inputId}','${listName}','${n.replace(/'/g,"\\'")}')">
+      ${n}
+    </div>`
+  ).join('');
+  lista.style.display = 'block';
+}
+
+function seleccionarSugerencia(inputId, listName, nombre) {
+  const inp = document.getElementById(inputId);
+  if (inp) inp.value = nombre;
+  ocultarSugerencias(inputId);
+  agregarItem(listName, inputId);
+}
+
+function ocultarSugerencias(inputId) {
+  const lista = document.getElementById('sug-' + inputId);
+  if (lista) lista.style.display = 'none';
+}
+
+// cerrar sugerencias al clicar fuera
+document.addEventListener('click', e => {
+  ['inpPres','inpOrad','inpLect','inpMiembro'].forEach(id => {
+    if (!e.target.closest(`#${id}`) && !e.target.closest(`#sug-${id}`)) {
+      ocultarSugerencias(id);
+    }
+  });
+});
