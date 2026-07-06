@@ -36,7 +36,6 @@ model Participante {
   nombre    String
   tipo      String
   orden     Int
-  telefono  String?
   createdAt DateTime @default(now())
   @@unique([userId, nombre, tipo])
 }
@@ -47,7 +46,6 @@ model Grupo {
   user      User     @relation(fields: [userId], references: [id])
   nombre    String
   orden     Int
-  telefono  String?
   createdAt DateTime @default(now())
 }
 
@@ -91,3 +89,4 @@ model BosquejoPersonal {
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+x
