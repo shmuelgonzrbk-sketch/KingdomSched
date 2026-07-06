@@ -1289,55 +1289,7 @@ function abrirModalEvento(idx) {
 /* ================================================================
    EXPORTAR
 ================================================================ */
-document.getElementById('btnPdf').addEventListener('click', exportarPDF);
 document.getElementById('btnWord').addEventListener('click', exportarWord);
-
-function generarFilasHTML() {
-  return D.schedule.map((row,idx)=>{
-    const bg=idx%2===0?'#cfe2f3':'#f4cccc';
-    const isEvt=row.eventType==='asamblea'||row.eventType==='conmemoracion';
-    const isCir=row.eventType==='circuito';
-    const g='----';
-    const ora=row.orador?row.orador+(row.oradorZoom?' (Zoom)':''):g;
-    const td=(c,ex='')=>`<td style="background:${bg};padding:7px 5px;text-align:center;vertical-align:middle;border:2px solid #fff;font-family:Arial;font-size:9pt;${ex}">${c}</td>`;
-    const tdOra=c=>`<td style="background:${bg};padding:7px 5px;text-align:center;vertical-align:middle;border:2px solid #fff;font-family:Arial;font-size:9pt;color:#0099cc;font-weight:bold;">${c}</td>`;
-    return `<tr>
-      ${td('<b>'+fmtFechaPlano(row.fecha)+'</b>')}
-      ${td(isEvt?g:esc(soloNombre(row.presidente))||g)}
-      ${tdOra(isEvt?g:esc(ora))}
-      ${td((isEvt||isCir)?g:(row.bosquejo?'N\u00b0'+esc(row.bosquejo):g))}
-      ${td(isEvt?'<b>'+esc(row.tema)+'</b>':(isCir?g:esc(row.tema)),'text-align:left;padding-left:8px;')}
-      ${td((isEvt||isCir)?g:esc(soloNombre(row.lector)))}
-      ${td((isEvt||isCir)?g:esc(row.hospitalidad))}
-    </tr>`;
-  }).join('');
-}
-
-function exportarPDF() {
-  if (!D.schedule.length) { mostrarNotif('No hay programa generada', 'error'); return; }
-  const contenido=document.createElement('div');
-  contenido.innerHTML=`
-  <table style="border-collapse:collapse;width:100%;table-layout:fixed;font-family:Arial;font-size:7.5pt;">
-    <colgroup><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:6%"><col style="width:32%"><col style="width:9%"><col style="width:10%"></colgroup>
-    <thead><tr>
-      <th style="background:#1a2744;color:#fff;padding:10px 5px;text-align:center;border:2px solid #fff;font-size:9.5pt;">FECHA</th>
-      <th style="background:#1a2744;color:#fff;padding:10px 5px;text-align:center;border:2px solid #fff;font-size:9.5pt;">PRESI-<br>DENTE</th>
-      <th style="background:#1a2744;color:#0099cc;padding:10px 5px;text-align:center;border:2px solid #fff;font-size:9.5pt;">ORADOR</th>
-      <th style="background:#1a2744;color:#fff;padding:10px 5px;text-align:center;border:2px solid #fff;font-size:9.5pt;">Bosq.</th>
-      <th style="background:#1a2744;color:#fff;padding:10px 5px;text-align:center;border:2px solid #fff;font-size:9.5pt;">TEMA</th>
-      <th style="background:#1a2744;color:#fff;padding:10px 5px;text-align:center;border:2px solid #fff;font-size:9.5pt;">LECTOR</th>
-      <th style="background:#1a2744;color:#fff;padding:10px 5px;text-align:center;border:2px solid #fff;font-size:9.5pt;">HOSPI-<br>TALIDAD</th>
-    </tr></thead>
-    <tbody>${generarFilasHTML()}</tbody>
-  </table>`;
-  html2pdf().set({
-    margin:[0.5,0.5], filename:'programa.pdf',
-    image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,scrollY:0},
-    jsPDF:{unit:'cm',format:'a4',orientation:'portrait'},
-    pagebreak:{mode:'avoid-all'}
-  }).from(contenido).save();
-}
 
 function exportarWord() {
   if (!D.schedule.length) { mostrarNotif('No hay programa generada', 'error'); return; }

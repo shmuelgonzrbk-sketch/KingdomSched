@@ -12,17 +12,18 @@ const {
 const BLUE_ROW = 'AED2F2';
 const PINK_ROW = 'F8D8E6';
 const HEADER_BG = 'FFFFFF';
-const AZUL   = '4C94D8'; // color de orador (encabezado y datos)
+const AZUL   = '4C94D8';
 const BLACK  = '000000';
-const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
-               'JULIO','AGOSTO','SEPTIEMB','OCTUBRE','NOVIEMBRE','DICIEMB'];
+const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 
 function fmtFecha(iso) {
   const d = new Date(iso + 'T00:00:00');
-  return `${String(d.getDate()).padStart(2,'0')} ${MESES[d.getMonth()]}`;
+  return {
+    dia: String(d.getDate()).padStart(2,'0'),
+    mes: MESES[d.getMonth()]
+  };
 }
 
-// anchos exactos del Word original en DXA
 const COLS = [1271, 1134, 1276, 850, 4122, 992, 1214];
 const TABLE_W = 10859;
 
@@ -30,7 +31,7 @@ const BORDER = { style: BorderStyle.SINGLE, size: 4, color: BLACK };
 
 function makeCell(content, bg, opts = {}) {
   const color = opts.color || BLACK;
-  const size  = 22; // 11pt igual que el original
+  const size  = 22;
 
   let runs = [];
   if (Array.isArray(content)) {
@@ -122,7 +123,7 @@ router.get('/word', requireAuth, async (req, res) => {
     return new TableRow({
       height: { value: 739, rule: HeightRule.AT_LEAST },
       children: [
-        makeCell([{text:fecha, bold:true}], bg, { w:COLS[0] }),
+        makeCell([{text:fecha.dia, bold:true},{text:fecha.mes, bold:true, break:1}], bg, { w:COLS[0] }),
         makeCell(pres,                     bg, { w:COLS[1] }),
         makeCell(oraContent,               bg, { w:COLS[2] }),
         makeCell(bosq,                     bg, { w:COLS[3] }),
