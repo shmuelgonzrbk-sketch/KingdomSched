@@ -9,7 +9,7 @@ let D = {
   discursos: [],  // discursos especiales sin numero
   _presIds: [], _oradIds: [], _lectIds: [], _grupIds: [],
   schedule: [], setupDone: false, cursorDate: null,
-  lectCola: [],  // cola de lectores con swap
+  lectCola: [], presCola: [],  // cola de lectores y presidentes con swap
   counters: { pres:0, orad:0, lect:0, hosp:0 }
 };
 
@@ -62,7 +62,7 @@ function mostrarLogin() {
       <div style="position:fixed;inset:0;background:#f7f8fa;display:flex;align-items:center;justify-content:center;z-index:999">
         <div style="background:#fff;border:1px solid #e2e4e9;border-radius:16px;padding:48px 40px;text-align:center;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.08)">
           <img src="/logo.png" style="width:110px;height:110px;margin:0 auto 20px;display:block;border-radius:20px">
-          <div style="font-size:24px;font-weight:800;color:#1a2744;letter-spacing:1px;margin-bottom:6px">KingdomSched</div>
+          <div style="font-size:24px;font-weight:800;color:#1a2744;letter-spacing:1px;margin-bottom:6px">AsignaTech</div>
           <div style="font-size:13px;color:#6b7280;margin-bottom:36px">programa de Reuniones</div>
           <a href="/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#1a2744;color:#fff;text-decoration:none;padding:13px 20px;border-radius:8px;font-size:14px;font-weight:700">
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 20-7.6 20-21 0-1.4-.1-2.7-.5-4z"/></svg>
@@ -636,7 +636,7 @@ document.getElementById('btnComenzar').addEventListener('click', () => {
   const tgt = Number(day);
   while (d.getDay() !== tgt) d.setDate(d.getDate()+1);
   D.meetingDay = tgt;
-  D.setupDone=true; D.schedule=[]; D.counters={pres:0,orad:0,lect:0,hosp:0}; D.lectCola=[];
+  D.setupDone=true; D.schedule=[]; D.counters={pres:0,orad:0,lect:0,hosp:0}; D.lectCola=[]; D.presCola=[];
   D.cursorDate = d.toISOString().slice(0,10);
   // guardar config en BD
   apiFetch('/api/config', { method:'POST', body: JSON.stringify({ meetingDay: Number(day) }) }).catch(e => console.error(e));
@@ -670,7 +670,7 @@ async function iniciarNuevoPrograma(fecha, div) {
   while (d.getDay() !== D.meetingDay) d.setDate(d.getDate() + 1);
   D.schedule = [];
   D.counters = { pres:0, orad:0, lect:0, hosp:0 };
-  D.lectCola = [];
+  D.lectCola = []; D.presCola = [];
   D.cursorDate = d.toISOString().slice(0, 10);
   D.setupDone  = true;
   document.body.removeChild(div);
@@ -696,7 +696,7 @@ document.getElementById('btnClear').addEventListener('click', () => {
   document.getElementById('clearCancelBtn').addEventListener('click', () => document.body.removeChild(div));
   document.getElementById('clearConfirmBtn').addEventListener('click', async () => {
     document.body.removeChild(div);
-    D.schedule=[]; D.setupDone=false; D.cursorDate=null; D.counters={pres:0,orad:0,lect:0,hosp:0}; D.lectCola=[];
+    D.schedule=[]; D.setupDone=false; D.cursorDate=null; D.counters={pres:0,orad:0,lect:0,hosp:0}; D.lectCola=[]; D.presCola=[];
     await guardarSchedule(); mostrarUI(); renderTabla();
     mostrarNotif('programa eliminada', 'ok');
   });
@@ -720,15 +720,31 @@ function construirFila(iso) {
   let orador = '';
   if (orad.length) { orador = orad[c.orad % orad.length]; c.orad++; }
 
+  // PRESIDENTE con cola de swap (igual que lector)
   let presidente = '';
   if (pres.length) {
-    let found='', sl=1;
-    for (let i=0; i<pres.length; i++) {
-      const cand = pres[(c.pres+i) % pres.length];
-      if (cand !== orador) { found=cand; sl=i+1; break; }
+    if (!D.presCola || D.presCola.length === 0) {
+      D.presCola = [...pres];
     }
-    if (!found) { found=pres[c.pres % pres.length]; sl=1; }
-    presidente=found; c.pres+=sl;
+    const cola = D.presCola;
+    let encontrado = false;
+    for (let i = 0; i < cola.length; i++) {
+      if (cola[i] !== orador) {
+        presidente = cola[i];
+        if (i > 0) {
+          const conflictivos = cola.splice(0, i);
+          cola.splice(1, 0, ...conflictivos);
+        }
+        cola.shift();
+        cola.push(presidente);
+        encontrado = true;
+        break;
+      }
+    }
+    if (!encontrado) {
+      presidente = cola[0];
+      cola.push(cola.shift());
+    }
   }
 
   // LECTOR con cola de swap
@@ -828,13 +844,14 @@ function renderTabla() {
     const isEvt=row.eventType==='asamblea'||row.eventType==='conmemoracion';
     const isCir=row.eventType==='circuito';
     const g=guionHtml();
+    const conflicto = row.presidente && row.lector && row.lector!=='----' && row.presidente===row.lector;
     const orLabel = row.orador
       ? `${esc(row.orador)}${row.oradorZoom?'<span class="tag-zoom"><b>(Zoom)</b></span>':''}`
       : g;
     const oradorClass = row.oradorZoom ? 'cellbtn orador zoom-active' : 'cellbtn orador';
     return `<tr class="${cls}">
       <td><button class="cellbtn fecha" onclick="abrirModalFecha(${idx})">${fmtFecha(row.fecha)}</button></td>
-      ${isEvt?`<td><div class="cell-static">${g}</div></td>`:`<td><button class="cellbtn" onclick="abrirModalPersona(${idx},'presidente')">${row.presidente?esc(soloNombre(row.presidente)):g}</button></td>`}
+      ${isEvt?`<td><div class="cell-static">${g}</div></td>`:`<td><button class="cellbtn${conflicto?' conflict-cell':''}" onclick="abrirModalPersona(${idx},'presidente')">${row.presidente?esc(soloNombre(row.presidente)):g}</button></td>`}
       ${isEvt?`<td><div class="cell-static">${g}</div></td>`:`<td>
         <button class="${oradorClass}"
           onclick="clickOrador(${idx},event)"
@@ -848,7 +865,7 @@ function renderTabla() {
       </td>`}
       ${(isEvt||isCir)?`<td><div class="cell-static">${g}</div></td>`:`<td><button class="cellbtn" onclick="abrirModalBosquejo(${idx})">${row.bosquejo?'N\u00b0'+esc(row.bosquejo):g}</button></td>`}
       ${isEvt?`<td><div class="cell-static cellbtn tema" style="font-weight:700">${esc(row.tema)}</div></td>`:isCir?`<td><div class="cell-static">${g}</div></td>`:`<td><button class="cellbtn tema" onclick="abrirModalBosquejo(${idx})">${row.tema?esc(row.tema):g}</button></td>`}
-      ${(isEvt||isCir)?`<td><div class="cell-static">${g}</div></td>`:`<td><button class="cellbtn" onclick="abrirModalLector(${idx})">${row.lector&&row.lector!=='----'?esc(soloNombre(row.lector)):g}</button></td>`}
+      ${(isEvt||isCir)?`<td><div class="cell-static">${g}</div></td>`:`<td><button class="cellbtn${conflicto?' conflict-cell':''}" onclick="abrirModalLector(${idx})">${row.lector&&row.lector!=='----'?esc(soloNombre(row.lector)):g}</button></td>`}
       ${(isEvt||isCir)?`<td><div class="cell-static">${g}</div></td>`:`<td><button class="cellbtn" onclick="abrirModalGrupoInicio(${idx})">${row.hospitalidad&&row.hospitalidad!=='----'?esc(row.hospitalidad):g}</button></td>`}
       <td class="del-col-td" style="width:60px;background:transparent;border:none;padding:4px 6px;vertical-align:middle">
         <div style="display:flex;gap:5px;align-items:center;justify-content:center">
