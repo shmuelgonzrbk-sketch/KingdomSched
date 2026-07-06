@@ -107,6 +107,36 @@ function mostrarNotif(msg, tipo = 'info') {
   setTimeout(() => el.remove(), 3000);
 }
 
+
+async function guardarConfigWhatsApp() {
+  const nombre   = document.getElementById('congNombreInp').value.trim();
+  const token    = document.getElementById('metaTokenInp').value.trim();
+  const phoneId  = document.getElementById('metaPhoneIdInp').value.trim();
+  const statusEl = document.getElementById('whatsappStatus');
+
+  if (!nombre || !token || !phoneId) {
+    mostrarNotif('Completa los 3 campos', 'error');
+    return;
+  }
+
+  statusEl.textContent = 'Probando conexión...';
+  statusEl.style.color = 'var(--muted)';
+
+  try {
+    const res = await apiFetch('/api/congregacion/config', {
+      method: 'POST',
+      body: JSON.stringify({ nombre, metaAccessToken: token, metaPhoneNumberId: phoneId })
+    });
+    statusEl.textContent = 'Conectado correctamente';
+    statusEl.style.color = '#1a6b3a';
+    mostrarNotif('Configuración guardada', 'ok');
+  } catch(e) {
+    statusEl.textContent = ' Error: revisa tus datos';
+    statusEl.style.color = '#991b1b';
+    mostrarNotif('Error al conectar', 'error');
+  }
+}
+
 /* ================================================================
    CARGAR DATOS
 ================================================================ */
@@ -220,9 +250,16 @@ document.querySelectorAll('.nav-item.has-sub').forEach(item => {
     const wasOpen = item.classList.contains('sub-open');
     cerrarTodosSubmenus();
     if (!wasOpen) item.classList.add('sub-open');
-    activarPanel('participantes');
+    if (item.id === 'navParticipantes') activarPanel('participantes');
     e.stopPropagation();
   });
+});
+document.querySelector('#subOpcionesAvanzadas [data-sub="automatizacion"]')?.addEventListener('click', e => {
+  activarPanel('automatizacion');
+  document.querySelectorAll('.nav-sub-item').forEach(s => s.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  if (window.innerWidth < 768) cerrarSidebar();
+  e.stopPropagation();
 });
 document.querySelectorAll('.nav-sub-item').forEach(subItem => {
   subItem.addEventListener('click', e => {
@@ -275,8 +312,7 @@ async function activarPanel(panelId) {
 }
 
 async function _irAPanel(panelId) {
-  document.querySelectorAll('.nav-item:not(.has-sub)').forEach(n => n.classList.toggle('active', n.dataset.panel === panelId));
-  document.querySelectorAll('.nav-item.has-sub').forEach(n => n.classList.toggle('active', panelId === 'participantes'));
+  document.querySelectorAll('.nav-item[data-panel]').forEach(n => n.classList.toggle('active', n.dataset.panel === panelId));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-'+panelId).classList.add('active');
   if (window.innerWidth < 768) cerrarSidebar();
@@ -308,21 +344,22 @@ function renderChips(listName) {
   ])].filter(n => !D[listName].includes(n));
 
   el.innerHTML = `
-    <div style="position:relative;margin-bottom:12px">
-      <div style="display:flex;gap:8px;align-items:center">
-        <div style="position:relative;flex:1">
-          <input type="text" id="inp-notion-${listName}"
-            placeholder="Buscar o escribir nombre..."
-            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit"
-            oninput="renderSugNotion('${listName}')"
-            onkeydown="if(event.key==='Enter'){agregarItemNotion('${listName}',this);}"
-            onfocus="renderSugNotion('${listName}')">
-          <div id="sug-notion-${listName}" class="autocomplete-list"></div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="agregarItemNotion('${listName}',document.getElementById('inp-notion-${listName}'))">Agregar</button>
+  <div style="position:relative;margin-bottom:12px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <div style="position:relative;flex:1">
+        <input type="text" id="inp-notion-${listName}"
+          placeholder="Buscar hermano existente..."
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit"
+          oninput="renderSugNotion('${listName}')"
+          onkeydown="if(event.key==='Enter'){agregarItemNotion('${listName}',this);}"
+          onfocus="renderSugNotion('${listName}')">
+        <div id="sug-notion-${listName}" class="autocomplete-list"></div>
       </div>
+      <button class="btn btn-secondary btn-sm" onclick="agregarItemNotion('${listName}',document.getElementById('inp-notion-${listName}'))">Añadir</button>
+      <button class="btn btn-primary btn-sm" onclick="abrirModalCrear('${listName}')">+ Crear nuevo</button>
     </div>
-    <div class="notion-list" id="notion-list-${listName}">
+  </div>
+  <div class="notion-list" id="notion-list-${listName}">
     ${D[listName].map((nombre, i) => `
       <div class="notion-item" draggable="true"
         data-idx="${i}" data-list="${listName}"
@@ -333,10 +370,9 @@ function renderChips(listName) {
         ondragend="onDragEnd(event)">
         <span class="notion-num" style="cursor:grab">&#8597;</span>
         <span class="notion-num">${i+1}</span>
-        <input class="notion-name" value="${esc(nombre)}"
-          onchange="editarParticipante('${listName}',${i},this.value)"
-          onkeydown="if(event.key==='Enter')this.blur()">
+        <input class="notion-name" value="${esc(nombre)}" readonly>
         <div class="notion-actions">
+          <button class="notion-btn edit" onclick="abrirModalEditar('${listName}',${i})" title="Editar">&#9998;</button>
           <button class="notion-btn del" onclick="quitarItem('${listName}',${i})">Eliminar</button>
         </div>
       </div>`).join('')}
@@ -429,6 +465,81 @@ async function aplicarReorder() {
   if (fab) fab.classList.remove('visible');
   mostrarNotif('Orden guardado', 'ok');
   if (D.setupDone) renderTabla();
+}
+
+function abrirModalCrear(listName) {
+  abrirModal('Crear nuevo participante', `
+    <div style="padding:22px">
+      <div class="form-modern-group">
+        <input type="text" id="crearNombreInp" placeholder=" ">
+        <label>Nombre completo</label>
+      </div>
+      <div class="form-modern-group">
+        <input type="tel" id="crearTelInp" placeholder=" ">
+        <label>Teléfono</label>
+      </div>
+      <p class="form-modern-hint">Opcional · solo 9 dígitos, sin +51</p>
+      <button class="btn-modal-submit" onclick="crearParticipante('${listName}')">Crear y agregar</button>
+    </div>
+  `);
+}
+async function crearParticipante(listName) {
+  const nombre   = document.getElementById('crearNombreInp').value.trim();
+  const telefono = document.getElementById('crearTelInp').value.trim();
+  if (!nombre) { mostrarNotif('El nombre es obligatorio', 'error'); return; }
+  const existe = D[listName].find(n => n.toLowerCase() === nombre.toLowerCase());
+  if (existe) { mostrarNotif(`"${existe}" ya está en la lista`, 'error'); return; }
+  try {
+    const p = await apiFetch('/api/participantes', {
+      method: 'POST',
+      body: JSON.stringify({ nombre, tipo: TIPO_MAP[listName], orden: D[listName].length, telefono })
+    });
+    D[listName].push(p.nombre);
+    D[IDS_MAP[listName]].push(p);
+    renderChips(listName);
+    cerrarModal();
+    mostrarNotif('Participante creado', 'ok');
+  } catch(e) { mostrarNotif(e.error || 'Error al crear', 'error'); }
+}
+
+function abrirModalEditar(listName, i) {
+  const ids = D[IDS_MAP[listName]];
+  const item = ids[i];
+  const nombreActual = D[listName][i] || '';
+  const telActual = item.telefono || '';
+  abrirModal('Editar participante', `
+    <div style="padding:22px">
+      <div class="form-modern-group">
+        <input type="text" id="editNombreInp" value="${esc(nombreActual)}" placeholder=" ">
+        <label>Nombre completo</label>
+      </div>
+      <div class="form-modern-group">
+        <input type="tel" id="editTelInp" value="${esc(telActual)}" placeholder=" ">
+        <label>Teléfono</label>
+      </div>
+      <p class="form-modern-hint">Solo 9 dígitos, sin +51</p>
+      <button class="btn-modal-submit" onclick="guardarEdicionParticipante('${listName}',${i})">Guardar</button>
+    </div>
+  `);
+}
+async function guardarEdicionParticipante(listName, i) {
+  const nombre   = document.getElementById('editNombreInp').value.trim();
+  const telefono = document.getElementById('editTelInp').value.trim();
+  if (!nombre) { mostrarNotif('El nombre es obligatorio', 'error'); return; }
+  const ids  = D[IDS_MAP[listName]];
+  const item = ids[i];
+  try {
+    const p = await apiFetch(`/api/participantes/${item.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ nombre, telefono })
+    });
+    D[listName][i]   = p.nombre;
+    ids[i].nombre    = p.nombre;
+    ids[i].telefono  = p.telefono;
+    renderChips(listName);
+    cerrarModal();
+    mostrarNotif('Participante actualizado', 'ok');
+  } catch(e) { mostrarNotif('Error al editar', 'error'); }
 }
 
 async function editarParticipante(listName, i, nuevoNombre) {
@@ -527,17 +638,19 @@ function renderBosquejos() {
   const nums = Object.keys(D.bosquejos).sort((a,b) => Number(a)-Number(b));
   const list = nums.filter(n => !q || n.includes(q) || D.bosquejos[n].toLowerCase().includes(q));
   document.getElementById('bosqCount').textContent = `(${nums.length} registrados)`;
-  document.getElementById('bosqListBody').innerHTML = list.length===0
-    ? `<tr><td colspan="3" style="padding:14px;text-align:center;color:var(--muted)">${nums.length===0?'Sin bosquejos.':'Sin resultados.'}</td></tr>`
-    : list.map(n => `<tr>
-        <td style="text-align:center"><b>${n}</b></td>
-        <td>${currentUser?.rol==='admin'
-          ? `<input type="text" value="${esc(D.bosquejos[n])}" style="width:100%;border:none;background:transparent;font-size:13px;font-family:inherit" onchange="editarBosquejo('${n}',this.value)">`
-          : `<span style="font-size:13px">${esc(D.bosquejos[n])}</span>`}</td>
-        <td style="text-align:center">${currentUser?.rol==='admin'
-          ? `<button class="del-btn" onclick="eliminarBosquejo('${n}')">x</button>`
-          : ''}</td>
-      </tr>`).join('');
+  const el = document.getElementById('bosqListBody');
+  el.innerHTML = list.length===0
+    ? `<div class="bosq-empty">${nums.length===0?'Sin bosquejos todavía.':'Sin resultados para tu búsqueda.'}</div>`
+    : list.map(n => `
+      <div class="bosq-item">
+        <div class="bosq-item-num">${n}</div>
+        ${currentUser?.rol==='admin'
+          ? `<input class="bosq-item-input" type="text" value="${esc(D.bosquejos[n])}" onchange="editarBosquejo('${n}',this.value)">`
+          : `<span class="bosq-item-text">${esc(D.bosquejos[n])}</span>`}
+        ${currentUser?.rol==='admin'
+          ? `<button class="bosq-item-del" onclick="eliminarBosquejo('${n}')">&#10005;</button>`
+          : ''}
+      </div>`).join('');
 }
 
 async function editarBosquejo(num, tema) {
@@ -562,11 +675,13 @@ async function eliminarBosquejo(num) {
    GRUPOS
 ================================================================ */
 function renderGrupos() {
+  const countEl = document.getElementById('gruposCount');
+  if (countEl) countEl.textContent = `(${D._grupIds.length} grupos)`;
   document.getElementById('gruposList').innerHTML = D._grupIds.map((g, i) => `
     <div class="grupo-row">
-      <span class="grupo-label">Grupo ${i+1}:</span>
-      <input type="text" value="${esc(g.nombre)}" style="width:180px" onchange="editarGrupo('${g.id}',${i},this.value)">
-      <button class="del-btn" onclick="eliminarGrupo('${g.id}',${i})">x</button>
+      <div class="grupo-badge">${i+1}</div>
+      <input type="text" value="${esc(g.nombre)}" onchange="editarGrupo('${g.id}',${i},this.value)">
+      <button class="grupo-del-btn" onclick="eliminarGrupo('${g.id}',${i})">&#10005;</button>
     </div>`).join('');
   renderGrupoInicio();
 }
@@ -939,8 +1054,8 @@ function abrirModalPersona(idx, campo) {
   const opts = list.length
     ? list.map(n => {
         const nSafe = n.replace(/'/g,"\\'");
-        return `<div class="modal-opt${cur===n?' active-opt':''}" onclick="setPersona(${idx},'${campo}','${nSafe}')">
-          ${cur===n?'&#10003; ':''}${esc(n)}</div>`;
+        return `<div class="modal-opt${cur===n?' active-opt':''}" data-inicial="${esc(n.charAt(0).toUpperCase())}" onclick="setPersona(${idx},'${campo}','${nSafe}')">
+          ${esc(n)}</div>`;
       }).join('')
     : `<p style="padding:12px;color:var(--muted);font-size:13px">No hay nombres registrados.</p>`;
   abrirModal('Seleccionar presidente', opts);
@@ -1535,17 +1650,18 @@ async function cargarBosqPersonales() {
 }
 
 function renderBosqPersonales() {
-  const tbody = document.getElementById('bosqPersonalBody');
-  if (!tbody) return;
-  tbody.innerHTML = D.bosquejosPersonales.length === 0
-    ? '<tr><td colspan="2" style="padding:12px;text-align:center;color:var(--muted)">Sin bosquejos personales.</td></tr>'
+  const el = document.getElementById('bosqPersonalBody');
+  if (!el) return;
+  const countEl = document.getElementById('discPersonalCount');
+  if (countEl) countEl.textContent = `(${D.bosquejosPersonales.length} registrados)`;
+  el.innerHTML = D.bosquejosPersonales.length === 0
+    ? '<div class="discurso-empty">Sin discursos personales todavía.<br>Agrega el primero arriba.</div>'
     : D.bosquejosPersonales.map(b => `
-        <tr>
-          <td style="padding:8px 10px">${esc(b.tema)}</td>
-          <td style="text-align:center">
-            <button class="del-btn" onclick="eliminarBosqPersonal('${b.id}')">x</button>
-          </td>
-        </tr>`).join('');
+        <div class="discurso-item">
+          <div class="discurso-item-icon">&#128172;</div>
+          <div class="discurso-item-text">${esc(b.tema)}</div>
+          <button class="discurso-item-del" onclick="eliminarBosqPersonal('${b.id}')">&#10005;</button>
+        </div>`).join('');
 }
 
 async function agregarBosqPersonal() {

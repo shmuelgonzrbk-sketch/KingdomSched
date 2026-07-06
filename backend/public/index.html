@@ -33,17 +33,15 @@
     <nav class="sidebar" id="sidebar">
       <div class="nav-items">
         <div class="nav-item active" data-panel="inicio">Inicio</div>
-        <div class="nav-item has-sub" id="navParticipantes">
-          <span>Participantes</span>
-          <span class="nav-arrow">&#9654;</span>
-          <div class="nav-sub" id="subParticipantes">
-            <div class="nav-sub-item active" data-sub="presidente">Presidente</div>
-            <div class="nav-sub-item" data-sub="orador">Orador</div>
-            <div class="nav-sub-item" data-sub="lector">Lector</div>
-          </div>
-        </div>
+        <div class="nav-item" data-panel="participantes">Participantes</div>
         <div class="nav-item" data-panel="bosquejos">Bosquejos</div>
         <div class="nav-item" data-panel="grupos">Grupos</div>
+        <div class="nav-item has-sub hover-sub" id="navOpcionesAvanzadas">
+        <span>Opciones Avanzadas</span>
+          <div class="nav-sub" id="subOpcionesAvanzadas">
+            <div class="nav-sub-item" data-sub="automatizacion">Automatización</div>
+          </div>
+        </div>
         <div class="nav-item" data-panel="cuenta">Cuenta</div>
       </div>
 
@@ -118,15 +116,6 @@
           <div class="card">
             <div class="card-title">Miembros de la Congregacion</div>
             <p class="note" style="margin-bottom:10px">Lista base de todos los hermanos. Se usara como sugerencia al agregar en las demas listas.</p>
-            <div class="form-row">
-              <div style="position:relative;flex:1">
-                <input type="text" id="inpMiembro" placeholder="Nombre del hermano" style="width:100%"
-                  oninput="mostrarSugerencias('inpMiembro','miembros',null)"
-                  onkeydown="if(event.key==='Enter')agregarMiembro()">
-                <div id="sug-inpMiembro" class="autocomplete-list"></div>
-              </div>
-              <button class="btn btn-primary" onclick="agregarMiembro()">Agregar</button>
-            </div>
             <div class="chips" id="chipsMiembros"></div>
           </div>
         </div>
@@ -170,43 +159,56 @@
         <div class="subpanel active" id="bosqtab-oficiales">
           <div class="card">
             <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-              <span>Catalogo de Bosquejos <span id="bosqCount" class="card-title-count">(0 registrados)</span></span>
-              <button class="btn btn-secondary btn-sm" onclick="recargarBosquejos()">Recargar</button>
+              <span>Catálogo de Bosquejos <span id="bosqCount" class="card-title-count">(0 registrados)</span></span>
+              <button class="btn-bosq-reload" onclick="recargarBosquejos()">&#8635; Recargar</button>
             </div>
-            <div class="form-row" style="margin-bottom:12px">
-              <input type="text" id="searchBosq" placeholder="Buscar por numero o por palabra del tema..." style="flex:1">
+            <div class="bosq-search-wrap">
+              
+              <input type="text" id="searchBosq" placeholder="Buscar por número o por palabra del tema...">
             </div>
-            <div class="bosq-table-wrap">
-              <table class="bosq-table">
-                <thead><tr>
-                  <th style="width:60px">N</th>
-                  <th>TEMA</th>
-                  <th style="width:44px"></th>
-                </tr></thead>
-                <tbody id="bosqListBody"></tbody>
-              </table>
-            </div>
+            <div class="bosq-list" id="bosqListBody"></div>
           </div>
         </div>
 
         <div class="subpanel" id="bosqtab-especiales">
           <div class="card">
-            <div class="card-title">Discursos Especiales</div>
-            <p class="note" style="margin-bottom:10px">Agrega tus propios temas. Cada usuario tiene su propia lista.</p>
-            <div class="form-row" style="margin-bottom:12px">
-              <input type="text" id="inpBosqPersonal" placeholder="Tema del discurso..." style="flex:1"
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+              <span>Discursos Especiales <span id="discPersonalCount" class="card-title-count"></span></span>
+            </div>
+            <p class="note" style="margin-bottom:16px">Agrega tus propios temas. Cada usuario tiene su propia lista.</p>
+            <div class="discurso-add-row">
+              <input type="text" id="inpBosqPersonal" placeholder="Ej. Cómo fortalecer la fe en tiempos difíciles"
                 onkeydown="if(event.key==='Enter')agregarBosqPersonal()">
-              <button class="btn btn-primary" onclick="agregarBosqPersonal()">Agregar</button>
+              <button class="btn-discurso-add" onclick="agregarBosqPersonal()">+ Agregar</button>
             </div>
-            <div class="bosq-table-wrap">
-              <table class="bosq-table">
-                <thead><tr><th>TEMA</th><th style="width:44px"></th></tr></thead>
-                <tbody id="bosqPersonalBody"></tbody>
-              </table>
-            </div>
+            <div class="discurso-list" id="bosqPersonalBody"></div>
           </div>
         </div>
       </div>
+
+      <!-- AUTOMATIZACION -->
+  <div class="panel" id="panel-automatizacion">
+    <div class="card">
+      <div class="card-title">Automatización de WhatsApp</div>
+      <p class="note" style="margin-bottom:12px">
+        Conecta tu cuenta de WhatsApp Business para enviar recordatorios automáticos a los hermanos.
+        <a href="/tutorial.html" target="_blank" style="color:var(--navy);font-weight:600">¿Cómo obtengo estos datos? Ver tutorial</a>
+      </p>
+      <div class="form-row">
+        <input type="text" id="congNombreInp" placeholder="Nombre de la congregación">
+      </div>
+      <div class="form-row">
+        <input type="text" id="metaTokenInp" placeholder="Access Token de Meta">
+      </div>
+      <div class="form-row">
+        <input type="text" id="metaPhoneIdInp" placeholder="Phone Number ID">
+      </div>
+      <button class="btn btn-primary" onclick="guardarConfigWhatsApp()">Probar y Guardar</button>
+      <div id="whatsappStatus" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- CUENTA -->
 
       <!-- CUENTA -->
       <div class="panel" id="panel-cuenta">
@@ -228,12 +230,12 @@
       <!-- GRUPOS -->
       <div class="panel" id="panel-grupos">
         <div class="card">
-          <div class="card-title">Grupos de Hospitalidad</div>
-          <p class="note" style="margin-bottom:16px">Rotan automaticamente. Puede renombrar o eliminar cada grupo.</p>
-          <div id="gruposList"></div>
-          <div class="form-row" style="margin-top:14px">
-            <input type="text" id="inpNuevoGrupo" placeholder="Nombre del nuevo grupo" style="flex:1">
-            <button class="btn btn-primary" id="btnAddGrupo">Agregar grupo</button>
+          <div class="card-title">Grupos de Hospitalidad <span id="gruposCount" class="card-title-count"></span></div>
+          <p class="note" style="margin-bottom:18px">Rotan automáticamente. Puede renombrar o eliminar cada grupo.</p>
+          <div id="gruposList" class="grupo-list"></div>
+          <div class="grupo-add-row">
+            <input type="text" id="inpNuevoGrupo" placeholder="Ej. Grupo Norte, Familia Pérez...">
+            <button class="btn-grupo-add" id="btnAddGrupo">+ Agregar grupo</button>
           </div>
         </div>
       </div>
