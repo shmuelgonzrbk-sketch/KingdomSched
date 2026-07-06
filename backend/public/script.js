@@ -796,7 +796,6 @@ async function agregarSemanas(n) {
     next.setDate(next.getDate()+7);
     D.cursorDate = next.toISOString().slice(0,10);
   }
-  asignarLectores();
   await guardarSchedule(); renderTabla();
 }
 
