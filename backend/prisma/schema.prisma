@@ -20,8 +20,31 @@ model User {
   grupos        Grupo[]
   config        Config?
   bosquejosPersonales BosquejoPersonal[]
+  congregacionId String?
+  congregacion   Congregacion? @relation(fields: [congregacionId], references: [id])
 }
 
+model Congregacion {
+  id                String   @id @default(cuid())
+  nombre            String
+  codigo            String   @unique
+  creadorId         String?
+  metaAccessToken   String?
+  metaPhoneNumberId String?
+  whatsappActivo    Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  users             User[]
+  invitaciones      InvitacionCongregacion[]
+}
+model InvitacionCongregacion {
+  id             String       @id @default(cuid())
+  token          String       @unique
+  congregacionId String
+  congregacion   Congregacion @relation(fields: [congregacionId], references: [id])
+  usado          Boolean      @default(false)
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+}
 model Bosquejo {
   id        Int      @id
   tema      String
@@ -47,7 +70,6 @@ model Grupo {
   user      User     @relation(fields: [userId], references: [id])
   nombre    String
   orden     Int
-  telefono  String?
   createdAt DateTime @default(now())
 }
 

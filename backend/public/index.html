@@ -29,20 +29,97 @@
     </div>
   </header>
 
+  <aside class="icon-rail" id="iconRail">
+    <button class="icon-rail-burger" id="railBurger" title="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="icon-rail-avatar" id="railAvatar" title="Cuenta"></div>
+    <nav class="icon-rail-nav">
+      <button class="icon-rail-btn active" data-rail-panel="inicio" title="Inicio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z"/></svg>
+      </button>
+      <button class="icon-rail-btn" data-rail-panel="participantes" title="Participantes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 20v-1.5a3.5 3.5 0 00-3.5-3.5h-3A3.5 3.5 0 007 18.5V20"/><circle cx="12" cy="8" r="3.5"/><path d="M21 20v-1.5a3 3 0 00-2-2.83M17.5 4.5a3.5 3.5 0 010 6.9"/></svg>
+      </button>
+      <button class="icon-rail-btn" data-rail-panel="bosquejos" title="Bosquejos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v15.5a1 1 0 01-1 1H6.5A2.5 2.5 0 004 22V5.5z"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/></svg>
+      </button>
+      <button class="icon-rail-btn" id="railOpciones" title="Opciones Avanzadas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      </button>
+    </nav>
+
+  </aside>
+
   <div class="page-body">
     <nav class="sidebar" id="sidebar">
       <div class="nav-items">
-        <div class="nav-item active" data-panel="inicio">Inicio</div>
-        <div class="nav-item" data-panel="participantes">Participantes</div>
-        <div class="nav-item" data-panel="bosquejos">Bosquejos</div>
-        <div class="nav-item" data-panel="grupos">Grupos</div>
-        <div class="nav-item has-sub hover-sub" id="navOpcionesAvanzadas">
-        <span>Opciones Avanzadas</span>
-          <div class="nav-sub" id="subOpcionesAvanzadas">
-            <div class="nav-sub-item" data-sub="automatizacion">Automatización</div>
+        <div class="nav-item active" data-panel="inicio">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z"/></svg>
+          <span>Inicio</span>
+        </div>
+        
+        <div class="nav-item has-sub hover-sub" id="navParticipantes">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 20v-1.5a3.5 3.5 0 00-3.5-3.5h-3A3.5 3.5 0 007 18.5V20"/><circle cx="12" cy="8" r="3.5"/><path d="M21 20v-1.5a3 3 0 00-2-2.83M17.5 4.5a3.5 3.5 0 010 6.9"/></svg>
+          <span>Participantes</span>
+          <span class="nav-arrow">&#9662;</span>
+          <div class="nav-sub" id="subParticipantes">
+            <div class="nav-sub-item" data-sub="miembros">
+              <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 20v-1.5a3.5 3.5 0 00-3.5-3.5h-3A3.5 3.5 0 007 18.5V20"/><circle cx="12" cy="8" r="3.5"/></svg>
+              <span>Miembros</span>
+            </div>
+            <div class="nav-sub-item" data-sub="presidente">
+              <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M8.5 13.5L7 22l5-2.5L17 22l-1.5-8.5"/></svg>
+              <span>Presidente</span>
+            </div>
+            <div class="nav-sub-item" data-sub="orador">
+              <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 013 3v4a3 3 0 01-6 0V6a3 3 0 013-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v3M9 21h6"/></svg>
+              <span>Orador</span>
+            </div>
+            <div class="nav-sub-item" data-sub="lector">
+              <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v15.5a1 1 0 01-1 1H6.5A2.5 2.5 0 004 22V5.5z"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/></svg>
+              <span>Lector</span>
+            </div>
           </div>
         </div>
-        <div class="nav-item" data-panel="cuenta">Cuenta</div>
+        <div class="nav-item has-sub hover-sub" id="navBosquejos">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v15.5a1 1 0 01-1 1H6.5A2.5 2.5 0 004 22V5.5z"/><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/></svg>
+          <span>Bosquejos</span>
+          <span class="nav-arrow">&#9662;</span>
+          <div class="nav-sub" id="subBosquejos">
+            <div class="nav-sub-item" data-sub="bosqoficiales">
+              <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20V5H6.5A2.5 2.5 0 004 7.5v12z"/><path d="M8 9h8M8 13h5"/></svg>
+              <span>Bosquejos oficiales</span>
+            </div>
+            <div class="nav-sub-item" data-sub="bosqespeciales">
+              <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              <span>Discursos especiales</span>
+            </div>
+          </div>
+        </div>
+        <div class="nav-item" data-panel="grupos">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20v-1a4 4 0 014-4h1M17 15h1a4 4 0 014 4v1"/><path d="M9 20v-1a4 4 0 014-4 4 4 0 014 4v1"/></svg>
+          <span>Grupos</span>
+        </div>
+        <div class="nav-item has-sub hover-sub" id="navOpcionesAvanzadas">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+          <span>Opciones Avanzadas</span>
+          <span class="nav-arrow">&#9662;</span>
+        <div class="nav-sub" id="subOpcionesAvanzadas">
+          <div class="nav-sub-item" data-sub="automatizacion">
+            <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 006 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0015 6.7l3-2.7"/></svg>
+            <span>Automatización</span>
+          </div>
+          <div class="nav-sub-item" data-sub="congregacion">
+            <svg class="nav-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6M9 12h.01M15 12h.01M12 12h.01"/></svg>
+            <span>Congregación</span>
+          </div>
+        </div>
+        </div>
+        <div class="nav-item" data-panel="cuenta">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 00-16 0"/></svg>
+          <span>Cuenta</span>
+        </div>
       </div>
 
     </nav>
@@ -52,6 +129,7 @@
 
       <!-- INICIO -->
       <div class="panel active" id="panel-inicio">
+        <div class="schedule-main-col" id="scheduleMainCol">
         <div class="card" id="setupCard">
           <div class="card-title">Configuracion Inicial</div>
           <div class="form-row">
@@ -75,6 +153,7 @@
           <button class="btn btn-success" id="btnAdd4">+ 4 Semanas</button>
           <button class="btn btn-danger" id="btnClear">Limpiar programa</button>
           <button class="btn btn-secondary" id="btnNuevoPrograma">Nuevo programa</button>
+          <button class="btn btn-secondary" id="btnExpandirPreview" style="margin-left:auto" hidden>&#8596; Expandir vista previa</button>
         </div>
 
         <div class="table-wrap" id="scheduleCard" style="display:none">
@@ -94,25 +173,30 @@
             <tbody id="scheduleBody"></tbody>
           </table>
         </div>
-
-        <div class="card" id="printBtnsCard" style="display:none;margin-top:16px">
-          <div class="card-title">Exportar</div>
-          <div class="form-row">
-            <button class="btn btn-primary" id="btnPdf">Guardar como PDF</button>
-            <button class="btn btn-secondary" id="btnWord">Descargar Word (.doc)</button>
-            <button class="btn btn-success" id="btnImagen">Compartir como Imagen</button>
-          </div>
         </div>
+
+        <aside class="schedule-preview" id="schedulePreview">
+          <div class="preview-export-row">
+            <span class="preview-export-label">Export As:</span>
+            <button class="preview-export-btn" id="btnPdf">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+              PDF
+            </button>
+            <button class="preview-export-btn" id="btnWord">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13l1.5 5L12 14l1.5 4L15 13"/></svg>
+              Word
+            </button>
+            <button class="preview-export-btn" id="btnImagen">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              Image
+            </button>
+          </div>
+          <div class="preview-body" id="previewBody"></div>
+        </aside>
       </div>
 
       <!-- PARTICIPANTES -->
       <div class="panel" id="panel-participantes">
-        <div class="subtabs">
-          <button class="subtab-btn active" data-sub="miembros">Miembros</button>
-          <button class="subtab-btn" data-sub="presidente">Presidente</button>
-          <button class="subtab-btn" data-sub="orador">Orador</button>
-          <button class="subtab-btn" data-sub="lector">Lector</button>
-        </div>
         <div class="subpanel active" id="sub-miembros">
           <div class="card">
             <div class="card-title">Miembros de la Congregacion</div>
@@ -152,11 +236,6 @@
 
       <!-- BOSQUEJOS -->
       <div class="panel" id="panel-bosquejos">
-        <div class="subtabs">
-          <button class="subtab-btn active" data-bosqtab="oficiales">Bosquejos oficiales</button>
-          <button class="subtab-btn" data-bosqtab="especiales">Discursos especiales</button>
-        </div>
-
         <div class="subpanel active" id="bosqtab-oficiales">
           <div class="card">
             <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -164,7 +243,6 @@
               <button class="btn-bosq-reload" onclick="recargarBosquejos()">&#8635; Recargar</button>
             </div>
             <div class="bosq-search-wrap">
-              
               <input type="text" id="searchBosq" placeholder="Buscar por número o por palabra del tema...">
             </div>
             <div class="bosq-list" id="bosqListBody"></div>
@@ -187,29 +265,45 @@
         </div>
       </div>
 
-      <!-- AUTOMATIZACION -->
-  <div class="panel" id="panel-automatizacion">
-    <div class="card">
-      <div class="card-title">Automatización de WhatsApp</div>
-      <p class="note" style="margin-bottom:12px">
-        Conecta tu cuenta de WhatsApp Business para enviar recordatorios automáticos a los hermanos.
-        <a href="/tutorial.html" target="_blank" style="color:var(--navy);font-weight:600">¿Cómo obtengo estos datos? Ver tutorial</a>
-      </p>
-      <div class="form-row">
-        <input type="text" id="congNombreInp" placeholder="Nombre de la congregación">
+      <!-- CONGREGACION -->
+      <div class="panel" id="panel-congregacion">
+        <div class="card">
+          <div class="card-title">Congregación Compartida</div>
+          <p class="note" style="margin-bottom:16px">Comparte tu programa con otros administradores usando un código de acceso.</p>
+          <div id="congEstadoActual"></div>
+        </div>
       </div>
-      <div class="form-row">
-        <input type="text" id="metaTokenInp" placeholder="Access Token de Meta">
-      </div>
-      <div class="form-row">
-        <input type="text" id="metaPhoneIdInp" placeholder="Phone Number ID">
-      </div>
-      <button class="btn btn-primary" onclick="guardarConfigWhatsApp()">Probar y Guardar</button>
-      <div id="whatsappStatus" style="margin-top:10px"></div>
-    </div>
-  </div>
 
-  <!-- CUENTA -->
+      <!-- AUTOMATIZACION -->
+      <div class="panel" id="panel-automatizacion">
+        <div class="card">
+          <div class="card-title">Automatización de WhatsApp</div>
+          <p class="note" style="margin-bottom:12px">
+            Conecta tu cuenta de WhatsApp Business para enviar recordatorios automáticos a los hermanos.
+            <a href="/tutorial.html" target="_blank" style="color:var(--navy);font-weight:600">¿Cómo obtengo estos datos? Ver tutorial</a>
+          </p>
+          <div class="form-row">
+            <input type="text" id="congNombreInp" placeholder="Nombre de la congregación">
+          </div>
+          <div class="form-row">
+            <input type="text" id="metaTokenInp" placeholder="Access Token de Meta">
+          </div>
+          <div class="form-row">
+            <input type="text" id="metaPhoneIdInp" placeholder="Phone Number ID">
+          </div>
+          <button class="btn btn-primary" onclick="guardarConfigWhatsApp()">Probar y Guardar</button>
+            <div id="whatsappStatus" style="margin-top:10px"></div>
+
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+              <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Enviar mensaje de prueba a tu número</label>
+              <div class="form-row">
+                <input type="tel" id="whatsappTestPhone" placeholder="987654321 (sin +51)" style="flex:1">
+                <button class="btn btn-secondary" onclick="enviarMensajePrueba()">Enviar prueba</button>
+              </div>
+              <div id="whatsappTestStatus" style="margin-top:8px;font-size:13px"></div>
+            </div>
+        </div>
+      </div>
 
       <!-- CUENTA -->
       <div class="panel" id="panel-cuenta">
@@ -242,6 +336,7 @@
       </div>
 
     </main>
+
   </div>
 
   <div class="overlay" id="modalOverlay">

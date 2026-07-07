@@ -39,6 +39,7 @@ async function checkAuth() {
     const user = await res.json();
     mostrarUsuario(user);
     await cargar();
+    detectarInvitacionURL();
   } catch(e) { ocultarCarga(); mostrarLogin(); }
 }
 
@@ -86,8 +87,16 @@ function mostrarUsuario(user) {
   document.getElementById('userEmail').textContent     = user.email || '';
   const foto = document.getElementById('userFoto');
   if (user.foto) { foto.src = user.foto; foto.style.display = 'block'; }
-}
 
+  const railAv = document.getElementById('railAvatar');
+  if (railAv) {
+    if (user.foto) {
+      railAv.innerHTML = `<img src="${user.foto}">`;
+    } else {
+      railAv.textContent = (user.nombre || '').trim().split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase();
+    }
+  }
+}
 async function logout() {
   await fetch('/auth/logout', { credentials: 'include' });
   mostrarLogin();
@@ -107,15 +116,13 @@ function mostrarNotif(msg, tipo = 'info') {
   setTimeout(() => el.remove(), 3000);
 }
 
-
 async function guardarConfigWhatsApp() {
-  const nombre   = document.getElementById('congNombreInp').value.trim();
   const token    = document.getElementById('metaTokenInp').value.trim();
   const phoneId  = document.getElementById('metaPhoneIdInp').value.trim();
   const statusEl = document.getElementById('whatsappStatus');
 
-  if (!nombre || !token || !phoneId) {
-    mostrarNotif('Completa los 3 campos', 'error');
+  if (!token || !phoneId) {
+    mostrarNotif('Completa ambos campos', 'error');
     return;
   }
 
@@ -123,15 +130,15 @@ async function guardarConfigWhatsApp() {
   statusEl.style.color = 'var(--muted)';
 
   try {
-    const res = await apiFetch('/api/congregacion/config', {
+    await apiFetch('/api/congregacion/config', {
       method: 'POST',
-      body: JSON.stringify({ nombre, metaAccessToken: token, metaPhoneNumberId: phoneId })
+      body: JSON.stringify({ metaAccessToken: token, metaPhoneNumberId: phoneId })
     });
-    statusEl.textContent = 'Conectado correctamente';
+    statusEl.textContent = ' Conectado correctamente';
     statusEl.style.color = '#1a6b3a';
     mostrarNotif('Configuración guardada', 'ok');
   } catch(e) {
-    statusEl.textContent = ' Error: revisa tus datos';
+    statusEl.textContent = ' ' + (e.error || 'Error al conectar');
     statusEl.style.color = '#991b1b';
     mostrarNotif('Error al conectar', 'error');
   }
@@ -247,27 +254,45 @@ function cerrarTodosSubmenus() {
 document.querySelectorAll('.nav-item.has-sub').forEach(item => {
   item.addEventListener('click', e => {
     if (e.target.closest('.nav-sub')) return;
+    // en PC (con hover disponible), el click no hace nada — solo hover controla el despliegue
+    if (window.matchMedia('(hover: hover)').matches) {
+      e.stopPropagation();
+      return;
+    }
     const wasOpen = item.classList.contains('sub-open');
     cerrarTodosSubmenus();
     if (!wasOpen) item.classList.add('sub-open');
-    if (item.id === 'navParticipantes') activarPanel('participantes');
     e.stopPropagation();
   });
 });
-document.querySelector('#subOpcionesAvanzadas [data-sub="automatizacion"]')?.addEventListener('click', e => {
-  activarPanel('automatizacion');
+document.querySelector('#subOpcionesAvanzadas [data-sub="congregacion"]')?.addEventListener('click', e => {
+  activarPanel('congregacion');
   document.querySelectorAll('.nav-sub-item').forEach(s => s.classList.remove('active'));
   e.currentTarget.classList.add('active');
   if (window.innerWidth < 768) cerrarSidebar();
+  cargarCongregacion();
   e.stopPropagation();
 });
 document.querySelectorAll('.nav-sub-item').forEach(subItem => {
   subItem.addEventListener('click', e => {
     const sub = subItem.dataset.sub;
+    if (sub === 'congregacion') return;
     document.querySelectorAll('.nav-sub-item').forEach(s => s.classList.remove('active'));
     subItem.classList.add('active');
-    document.querySelectorAll('.subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.sub === sub));
-    document.querySelectorAll('.subpanel').forEach(p => p.classList.toggle('active', p.id === 'sub-'+sub));
+
+    if (['miembros','presidente','orador','lector'].includes(sub)) {
+      activarPanel('participantes');
+      document.querySelectorAll('.subpanel').forEach(p => p.classList.toggle('active', p.id === 'sub-'+sub));
+    } else if (sub === 'bosqoficiales' || sub === 'bosqespeciales') {
+      activarPanel('bosquejos');
+      const tab = sub === 'bosqoficiales' ? 'oficiales' : 'especiales';
+      document.querySelectorAll('[data-bosqtab]').forEach(b => b.classList.toggle('active', b.dataset.bosqtab === tab));
+      document.querySelectorAll('#panel-bosquejos .subpanel').forEach(p => p.classList.toggle('active', p.id === 'bosqtab-'+tab));
+      if (tab === 'especiales' && typeof renderDiscursosLista === 'function') renderDiscursosLista();
+    } else {
+      activarPanel(sub);
+    }
+    if (sub === 'automatizacion') cargarEstadoWhatsApp();
     if (window.innerWidth < 768) cerrarSidebar();
     e.stopPropagation();
   });
@@ -315,6 +340,7 @@ async function _irAPanel(panelId) {
   document.querySelectorAll('.nav-item[data-panel]').forEach(n => n.classList.toggle('active', n.dataset.panel === panelId));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-'+panelId).classList.add('active');
+  setRailActive(panelId); // ← nuevo
   if (window.innerWidth < 768) cerrarSidebar();
 }
 
@@ -327,6 +353,31 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
   });
 });
 
+
+/* ================================================================
+   ICON RAIL
+================================================================ */
+function setRailActive(panelId) {
+  document.querySelectorAll('.icon-rail-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.railPanel === panelId));
+}
+
+document.getElementById('railBurger')?.addEventListener('click', toggleSidebar);
+document.getElementById('railLogout')?.addEventListener('click', logout);
+document.getElementById('railAvatar')?.addEventListener('click', () => {
+  activarPanel('cuenta'); setRailActive('cuenta');
+});
+document.getElementById('railOpciones')?.addEventListener('click', () => {
+  abrirSidebar();
+  document.getElementById('navOpcionesAvanzadas')?.classList.add('sub-open');
+});
+document.querySelectorAll('[data-rail-panel]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const panel = btn.dataset.railPanel;
+    activarPanel(panel);
+    setRailActive(panel);
+  });
+});
 /* ================================================================
    PARTICIPANTES
 ================================================================ */
@@ -821,8 +872,8 @@ function mostrarUI() {
   const on = D.setupDone;
   document.getElementById('setupCard').style.display      = on?'none':'block';
   document.getElementById('scheduleActions').style.display = on?'flex':'none';
+  document.getElementById('btnExpandirPreview').hidden = !on;
   document.getElementById('scheduleCard').style.display    = on?'block':'none';
-  document.getElementById('printBtnsCard').style.display   = on?'block':'none';
 }
 
 /* ================================================================
@@ -995,6 +1046,10 @@ function renderTabla() {
       </td>
     </tr>`;
   }).join('');
+   if (document.body.classList.contains('preview-open')) {
+    const activeBtnMap = { btnPdf:'pdf', btnWord:'word', btnImagen:'imagen' };
+    mostrarPreview('pdf');
+  }
 }
 
 function eliminarFila(idx) {
@@ -1637,4 +1692,299 @@ async function eliminarBosqPersonal(id) {
     D.bosquejosPersonales = D.bosquejosPersonales.filter(b => b.id !== id);
     renderBosqPersonales();
   } catch(e) { mostrarNotif('Error al eliminar', 'error'); }
+}
+
+/* ═══════════════════════════════════════════════
+   EXPANDIR PREVIEW
+═══════════════════════════════════════════════ */
+document.getElementById('btnExpandirPreview').addEventListener('click', () => {
+  const btn = document.getElementById('btnExpandirPreview');
+  const expandido = document.body.classList.toggle('preview-open');
+  btn.innerHTML = expandido ? '&#8596; Cerrar vista previa' : '&#8596; Expandir vista previa';
+  if (expandido) mostrarPreview('pdf');
+});
+
+document.getElementById('btnPdf')?.addEventListener('click', () => mostrarPreview('pdf'));
+document.getElementById('btnWord')?.addEventListener('click', () => mostrarPreview('word'));
+document.getElementById('btnImagen')?.addEventListener('click', () => mostrarPreview('imagen'));
+
+function mostrarPreview(tipo) {
+  const body = document.getElementById('previewBody');
+  if (!D.schedule.length) {
+    body.innerHTML = '<p style="text-align:center;color:var(--muted);font-size:12px;padding:20px">Genera un programa primero.</p>';
+    return;
+  }
+  let tabla = '';
+  if (tipo === 'pdf' || tipo === 'word') {
+    tabla = generarFilasHTMLPdf ? `<table style="border-collapse:collapse;width:100%;font-family:Arial;font-size:7pt;">
+      <colgroup><col style="width:14%"><col style="width:12%"><col style="width:14%"><col style="width:9%"><col style="width:38%"><col style="width:12%"><col style="width:14%"></colgroup>
+      <thead><tr>
+        <th style="background:#FFFFFF;color:#000;padding:6px 3px;text-align:center;border:0.5px solid #000;font-size:7.5pt;">FECHA</th>
+        <th style="background:#FFFFFF;color:#000;padding:6px 3px;text-align:center;border:0.5px solid #000;font-size:7.5pt;">PRESI-<br>DENTE</th>
+        <th style="background:#FFFFFF;color:#4C94D8;padding:6px 3px;text-align:center;border:0.5px solid #000;font-size:7.5pt;">ORADOR</th>
+        <th style="background:#FFFFFF;color:#000;padding:6px 3px;text-align:center;border:0.5px solid #000;font-size:7.5pt;">Bosq.</th>
+        <th style="background:#FFFFFF;color:#000;padding:6px 3px;text-align:center;border:0.5px solid #000;font-size:7.5pt;">TEMA</th>
+        <th style="background:#FFFFFF;color:#000;padding:6px 3px;text-align:center;border:0.5px solid #000;font-size:7.5pt;">LECTOR</th>
+        <th style="background:#FFFFFF;color:#000;padding:6px 3px;text-align:center;border:0.5px solid #000;font-size:7.5pt;">HOSPI-<br>TALIDAD</th>
+      </tr></thead>
+      <tbody>${generarFilasHTMLPdf()}</tbody>
+    </table>` : '<p style="text-align:center;color:var(--muted);font-size:12px">Preview no disponible</p>';
+  } else if (tipo === 'imagen') {
+    tabla = generarFilasHTMLImagen ? `<table style="border-collapse:collapse;width:100%;font-family:Arial;font-size:7pt;">
+      <colgroup><col style="width:13%"><col style="width:12%"><col style="width:13%"><col style="width:8%"><col style="width:38%"><col style="width:10%"><col style="width:12%"></colgroup>
+      <tbody>${generarFilasHTMLImagen()}</tbody>
+    </table>` : '<p style="text-align:center;color:var(--muted);font-size:12px">Preview no disponible</p>';
+  }
+  body.innerHTML = tabla;
+}
+
+/* ═══════════════════════════════════════════════
+   CONGREGACION
+═══════════════════════════════════════════════ */
+async function cargarCongregacion() {
+  try {
+    const cong = await apiFetch('/api/congregacion/mi-congregacion');
+    renderCongregacion(cong);
+  } catch(e) {
+    mostrarNotif('Error al cargar congregación', 'error');
+  }
+}
+
+function renderCongregacion(cong) {
+  const el = document.getElementById('congEstadoActual');
+  if (!el) return;
+
+if (cong) {
+    const esCreador = currentUser && cong.creadorId && currentUser.id === cong.creadorId;
+    el.innerHTML = `
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Nombre de la congregación</label>
+        <input type="text" value="${esc(cong.nombre)}" readonly style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--paper);font-size:14px;caret-color:transparent;cursor:default">
+      </div>
+      ${esCreador ? `
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Código de acceso</label>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="congCodigoInp" value="${esc(cong.codigo)}" readonly style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--paper);font-size:14px;font-family:monospace;letter-spacing:1px">
+          <button class="btn btn-secondary btn-sm" onclick="toggleVerCodigo()">&#128065;</button>
+          <button class="btn btn-secondary btn-sm" onclick="copiarCodigo()">Copiar</button>
+          <button class="btn btn-success btn-sm" onclick="compartirInvitacion()">Compartir invitación</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <button class="btn btn-danger btn-sm" onclick="confirmarRegenerarCodigo()">Regenerar código</button>
+        <button class="btn btn-secondary btn-sm" onclick="confirmarSalirCongregacion()">Salir de la congregación</button>
+      </div>
+      ` : `
+      <div style="margin-bottom:20px">
+        <button class="btn btn-secondary btn-sm" onclick="confirmarSalirCongregacion()">Salir de la congregación</button>
+      </div>
+      `}
+      <div style="border-top:1px solid var(--border);padding-top:16px">
+        <label style="font-size:12px;font-weight:700;color:var(--brand);display:block;margin-bottom:10px;text-transform:uppercase">Miembros de esta congregación</label>
+        <div id="congMiembrosList"></div>
+      </div>
+    `;
+    cargarMiembrosCongregacion();
+  } else {
+    el.innerHTML = `
+      <div class="subtabs" style="margin-bottom:16px">
+        <button class="subtab-btn active" id="tabCrearCong" onclick="switchCongTab('crear')">Crear nueva</button>
+        <button class="subtab-btn" id="tabUnirseCong" onclick="switchCongTab('unirse')">Unirme a una existente</button>
+      </div>
+      <div id="congFormContent"></div>
+    `;
+    switchCongTab('crear');
+  }
+}
+
+function switchCongTab(tab) {
+  document.getElementById('tabCrearCong').classList.toggle('active', tab === 'crear');
+  document.getElementById('tabUnirseCong').classList.toggle('active', tab === 'unirse');
+  const cont = document.getElementById('congFormContent');
+  if (tab === 'crear') {
+    cont.innerHTML = `
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Nombre de tu congregación</label>
+        <input type="text" id="congNuevoNombre" placeholder="Congregación" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px; text-transform:uppercase">
+      </div>
+      <button class="btn btn-primary" onclick="crearCongregacion()">Crear congregación</button>
+    `;
+  } else {
+    cont.innerHTML = `
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Código de acceso</label>
+        <input type="text" id="congUnirseCodigo" placeholder="Código que te compartieron" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:monospace;text-transform:uppercase">
+      </div>
+      <button class="btn btn-primary" onclick="unirseCongregacion()">Unirme</button>
+    `;
+  }
+}
+
+async function crearCongregacion() {
+  const nombre = document.getElementById('congNuevoNombre').value.trim();
+  if (!nombre) { mostrarNotif('Escribe un nombre', 'error'); return; }
+  try {
+    const cong = await apiFetch('/api/congregacion/crear', {
+      method: 'POST', body: JSON.stringify({ nombre })
+    });
+    mostrarNotif('Congregación creada', 'ok');
+    renderCongregacion(cong);
+  } catch(e) { mostrarNotif(e.error || 'Error al crear', 'error'); }
+}
+
+async function unirseCongregacion() {
+  const codigo = document.getElementById('congUnirseCodigo').value.trim();
+  if (!codigo) { mostrarNotif('Escribe el código', 'error'); return; }
+  try {
+    const cong = await apiFetch('/api/congregacion/unirse', {
+      method: 'POST', body: JSON.stringify({ codigo })
+    });
+    mostrarNotif('Te uniste a la congregación', 'ok');
+    renderCongregacion(cong);
+  } catch(e) { mostrarNotif(e.error || 'Código o nombre incorrecto', 'error'); }
+}
+
+function toggleVerCodigo() {
+  const inp = document.getElementById('congCodigoInp');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function copiarCodigo() {
+  const inp = document.getElementById('congCodigoInp');
+  navigator.clipboard.writeText(inp.value).then(() => {
+    mostrarNotif('Código copiado', 'ok');
+  });
+}
+
+function confirmarRegenerarCodigo() {
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+  div.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center">
+      <div style="font-size:26px;margin-bottom:10px">&#9888;</div>
+      <div style="font-size:15px;font-weight:800;color:#1a2744;margin-bottom:8px">Regenerar código</div>
+      <div style="font-size:13px;color:#6b7280;margin-bottom:20px">El código actual dejará de funcionar. Tendrás que compartir el nuevo con quienes ya lo usaban.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="regenCancelBtn" class="btn btn-secondary">Cancelar</button>
+        <button id="regenConfirmBtn" class="btn btn-danger">Regenerar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  document.getElementById('regenCancelBtn').addEventListener('click', () => document.body.removeChild(div));
+  document.getElementById('regenConfirmBtn').addEventListener('click', async () => {
+    document.body.removeChild(div);
+    try {
+      const cong = await apiFetch('/api/congregacion/regenerar-codigo', { method: 'POST' });
+      mostrarNotif('Código regenerado', 'ok');
+      renderCongregacion(cong);
+    } catch(e) { mostrarNotif('Error al regenerar', 'error'); }
+  });
+}
+
+function confirmarSalirCongregacion() {
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+  div.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center">
+      <div style="font-size:26px;margin-bottom:10px">&#9888;</div>
+      <div style="font-size:15px;font-weight:800;color:#1a2744;margin-bottom:8px">Salir de la congregación</div>
+      <div style="font-size:13px;color:#6b7280;margin-bottom:20px">Volverás a trabajar con tu propia data individual. Puedes unirte de nuevo con el código.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="salirCancelBtn" class="btn btn-secondary">Cancelar</button>
+        <button id="salirConfirmBtn" class="btn btn-danger">Salir</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  document.getElementById('salirCancelBtn').addEventListener('click', () => document.body.removeChild(div));
+  document.getElementById('salirConfirmBtn').addEventListener('click', async () => {
+    document.body.removeChild(div);
+    try {
+      await apiFetch('/api/congregacion/salir', { method: 'POST' });
+      mostrarNotif('Saliste de la congregación', 'ok');
+      renderCongregacion(null);
+    } catch(e) { mostrarNotif('Error al salir', 'error'); }
+  });
+}
+
+async function compartirInvitacion() {
+  try {
+    const res = await apiFetch('/api/congregacion/generar-invitacion', { method: 'POST' });
+    const link = `${window.location.origin}/?join=${res.token}`;
+    const mensaje = `Únete a nuestra congregación en AsignaTech.\n\n${link}\n\nEste link es válido por 48 horas y de un solo uso.`;
+    const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+  } catch(e) {
+    mostrarNotif('Error al generar invitación', 'error');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   DETECTAR INVITACION EN URL
+═══════════════════════════════════════════════ */
+async function detectarInvitacionURL() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('join');
+  if (!token) return;
+
+  try {
+    const cong = await apiFetch('/api/congregacion/usar-invitacion', {
+      method: 'POST', body: JSON.stringify({ token })
+    });
+    mostrarNotif(`Te uniste a ${cong.nombre}`, 'ok');
+  } catch(e) {
+    mostrarNotif(e.error || 'Invitación no válida o expirada', 'error');
+  }
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+async function cargarMiembrosCongregacion() {
+  try {
+    const miembros = await apiFetch('/api/congregacion/miembros');
+    const el = document.getElementById('congMiembrosList');
+    if (!el) return;
+    el.innerHTML = miembros.map(m => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        ${m.foto ? `<img src="${m.foto}" style="width:32px;height:32px;border-radius:50%">` : ''}
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">${esc(m.nombre)}</div>
+          <div style="font-size:11.5px;color:var(--muted)">${esc(m.email)}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function cargarEstadoWhatsApp() {
+  try {
+    const data = await apiFetch('/api/congregacion/config');
+    const statusEl = document.getElementById('whatsappStatus');
+    if (!statusEl) return;
+    if (data.conectado) {
+      statusEl.textContent = '✅ Conectado correctamente';
+      statusEl.style.color = '#1a6b3a';
+    } else {
+      statusEl.textContent = '⚠️ No configurado todavía';
+      statusEl.style.color = 'var(--muted)';
+    }
+  } catch(e) {}
+}
+
+async function enviarMensajePrueba() {
+  const telefono = document.getElementById('whatsappTestPhone').value.trim();
+  const statusEl = document.getElementById('whatsappTestStatus');
+  if (!telefono) { mostrarNotif('Escribe tu número', 'error'); return; }
+
+  statusEl.textContent = 'Enviando...';
+  statusEl.style.color = 'var(--muted)';
+
+  try {
+    await apiFetch('/api/congregacion/probar-whatsapp', {
+      method: 'POST', body: JSON.stringify({ telefono })
+    });
+    statusEl.textContent = '✅ Mensaje enviado, revisa tu WhatsApp';
+    statusEl.style.color = '#1a6b3a';
+  } catch(e) {
+    statusEl.textContent = '❌ ' + (e.error || 'Error al enviar');
+    statusEl.style.color = '#991b1b';
+  }
 }

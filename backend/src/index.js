@@ -29,6 +29,7 @@ app.use('/api/discursos', require('./routes/discursos'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/schedule',      require('./routes/schedule'));
+app.use('/api/congregacion', require('./routes/congregacion'));
 
 app.use(express.static(path.join(__dirname, '../public')));
 app.get('/{*path}', (req, res) => {

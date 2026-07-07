@@ -1,14 +1,18 @@
-async function enviarWhatsApp(telefono, mensaje) {
-  if (!telefono) return; // si no tiene número, no intenta nada
+async function enviarWhatsApp(telefono, mensaje, credenciales) {
+  if (!telefono) return;
+  const { metaAccessToken, metaPhoneNumberId } = credenciales;
+  if (!metaAccessToken || !metaPhoneNumberId) {
+    return { error: 'Credenciales de WhatsApp no configuradas' };
+  }
 
-  const numeroCompleto = `51${telefono.replace(/\D/g, '')}`; // limpia y agrega código país
+  const numeroCompleto = `51${telefono.replace(/\D/g, '')}`;
 
   const res = await fetch(
-    `https://graph.facebook.com/v19.0/${process.env.META_PHONE_NUMBER_ID}/messages`,
+    `https://graph.facebook.com/v19.0/${metaPhoneNumberId}/messages`,
     {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.META_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${metaAccessToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -16,7 +20,7 @@ async function enviarWhatsApp(telefono, mensaje) {
         to: numeroCompleto,
         type: 'template',
         template: {
-          name: 'aviso_asignacion', // el nombre exacto de tu plantilla aprobada en Meta
+          name: 'aviso_asignacion',
           language: { code: 'es' },
           components: [{
             type: 'body',
@@ -26,10 +30,8 @@ async function enviarWhatsApp(telefono, mensaje) {
       })
     }
   );
-
   const data = await res.json();
   if (!res.ok) console.error('Error enviando WhatsApp:', data);
   return data;
 }
-
 module.exports = { enviarWhatsApp };
