@@ -1580,3 +1580,33 @@ body.preview-open .content {
   .page-body { margin-left: 64px; }
 }
 
+
+/* ==========================================
+   ARREGLO DE POSICIONAMIENTO DE PANELES 
+   ========================================== */
+
+/* Asegura que el contenedor principal no acumule bloques abajo */
+#mainContent {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+/* Oculta de verdad los paneles que no tienen la clase active */
+.panel {
+  display: none !important;
+  width: 100%;
+}
+
+/* Muestra únicamente el panel seleccionado arriba del todo */
+.panel.active {
+  display: block !important;
+}
+
+/* Ajuste específico para que el panel de Inicio mantenga sus dos columnas */
+#panel-inicio.panel.active {
+  display: flex !important;
+  gap: 20px;
+  align-items: flex-start;
+}
